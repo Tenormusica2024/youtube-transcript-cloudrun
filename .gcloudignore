@@ -1,0 +1,58 @@
+# Git関連
+.git
+.gitignore
+
+# Python関連
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# 仮想環境
+.env
+.venv
+venv/
+env/
+ENV/
+
+# IDE設定
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ログファイル
+*.log
+logs/
+
+# テストファイル
+tests/
+test_*.py
+*_test.py
+
+# ドキュメント
+*.md
+docs/
+README.md
+
+# Docker関連（Cloud Buildを使用しない場合）
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 開発用ファイル
+*.bak
+*.tmp
+*.temp
+
+# 機密情報
+secrets/
+*.key
+*.pem
+*.cert

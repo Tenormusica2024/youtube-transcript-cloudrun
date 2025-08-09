@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  youtube-transcript-app:
+    build: .
+    ports:
+      # ポート8081を使用（他サービスとの干渉回避）
+      - "8081:8080"
+    environment:
+      # Cloud Run互換の環境変数
+      - PORT=8080
+      - YOUTUBE_API_KEY=${YOUTUBE_API_KEY}
+      # ローカル開発フラグ
+      - ENV=development
+    volumes:
+      # ホットリロード用（開発時のみ）
+      - ./app_cloud_run.py:/app/app.py:ro
+      - ./templates:/app/templates:ro
+      - ./static:/app/static:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
