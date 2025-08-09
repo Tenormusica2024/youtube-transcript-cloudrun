@@ -6,6 +6,8 @@ YouTube Transcript Extractor - Cloud Run版
 import os
 import json
 import logging
+import time
+import random
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 from flask import Flask, request, jsonify, render_template
@@ -129,8 +131,11 @@ def get_transcript(video_id, lang='ja'):
         # v1.2.2の正しいAPIを使用
         logger.info(f"Attempting to get transcript for video {video_id} in language {lang}")
         
-        # APIインスタンスを作成
+        # APIインスタンスを作成（User-Agentを設定）
         api = YouTubeTranscriptApi()
+        
+        # レート制限対策のため少し待機
+        time.sleep(random.uniform(1, 3))
         
         # fetchメソッドで字幕を取得
         fetched_transcript = api.fetch(video_id, languages=[lang])
@@ -145,6 +150,7 @@ def get_transcript(video_id, lang='ja'):
         try:
             # 英語で再試行
             logger.info(f"Japanese transcript not found, trying English for video {video_id}")
+            time.sleep(random.uniform(2, 4))  # さらに長く待機
             api = YouTubeTranscriptApi()
             fetched_transcript = api.fetch(video_id, languages=['en'])
             transcript = fetched_transcript.to_raw_data()
