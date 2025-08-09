@@ -1,6 +1,9 @@
 name: Manual Transcript Extraction
 
 on:
+  push:
+    paths:
+      - '.github/workflows/extract-transcript.yml'
   workflow_dispatch:
     inputs:
       youtube_url:
