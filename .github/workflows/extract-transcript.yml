@@ -133,7 +133,12 @@ jobs:
                 import json
                 
                 # Gemini API設定
-                api_key = "AIzaSyBKVL0MW3hbTFX7llfbuF0TL73SKNR2Rfw"
+                api_key = "${{ secrets.GEMINI_API_KEY }}"
+                
+                if not api_key or api_key.strip() == "":
+                    print("⚠️ Gemini API キーが設定されていません。簡易要約を使用します。")
+                    return create_simple_summary(text)
+                
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={api_key}"
                 
                 # プロンプト作成
