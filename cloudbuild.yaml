@@ -37,3 +37,7 @@ steps:
 images:
   - 'gcr.io/$PROJECT_ID/youtube-transcript-app:$BUILD_ID'
 
+# Logging configuration (required when using service account)
+options:
+  logging: CLOUD_LOGGING_ONLY
+
