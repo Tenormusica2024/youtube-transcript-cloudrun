@@ -1,0 +1,365 @@
+name: Manual Transcript Extraction
+
+on:
+  workflow_dispatch:
+    inputs:
+      youtube_url:
+        description: 'YouTube URL'
+        required: true
+        default: 'https://www.youtube.com/watch?v='
+      language:
+        description: 'Language'
+        required: true
+        default: 'ja'
+        type: choice
+        options:
+        - ja
+        - en
+        - ko
+        - zh
+      output_format:
+        description: 'Output Format'
+        required: true
+        default: 'formatted'
+        type: choice
+        options:
+        - formatted
+        - raw
+        - summary_only
+
+jobs:
+  extract-transcript:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install youtube-transcript-api requests
+        
+    - name: Extract video ID
+      id: extract_id
+      run: |
+        python3 << 'EOF'
+        import sys
+        from urllib.parse import urlparse, parse_qs
+        
+        def get_video_id(url):
+            try:
+                parsed_url = urlparse(url.strip())
+                
+                # youtu.be format
+                if parsed_url.hostname == 'youtu.be':
+                    return parsed_url.path[1:]
+                
+                # youtube.com format
+                if parsed_url.hostname in ('www.youtube.com', 'youtube.com'):
+                    if parsed_url.path == '/watch':
+                        params = parse_qs(parsed_url.query)
+                        return params.get('v', [None])[0]
+                    if parsed_url.path.startswith('/embed/'):
+                        return parsed_url.path.split('/')[2]
+                    if parsed_url.path.startswith('/v/'):
+                        return parsed_url.path.split('/')[2]
+                
+                raise ValueError(f"Invalid YouTube URL: {url}")
+            except Exception as e:
+                print(f"URL parsing error: {e}")
+                sys.exit(1)
+        
+        url = "${{ github.event.inputs.youtube_url }}"
+        video_id = get_video_id(url)
+        print(f"video_id={video_id}")
+        
+        # Set output for next step
+        with open('video_id.txt', 'w') as f:
+            f.write(video_id)
+        EOF
+        
+    - name: Extract transcript
+      run: |
+        python3 << 'EOF'
+        import os
+        import json
+        import time
+        from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
+        
+        def get_transcript(video_id, lang='ja'):
+            try:
+                print(f"Extracting transcript for video {video_id} in language {lang}...")
+                
+                api = YouTubeTranscriptApi()
+                
+                try:
+                    fetched_transcript = api.fetch(video_id, languages=[lang])
+                    transcript = fetched_transcript.to_raw_data()
+                    print(f"✅ {lang} transcript extracted successfully: {len(transcript)} segments")
+                    return transcript, lang
+                except NoTranscriptFound:
+                    print(f"⚠️ {lang} transcript not found. Trying English...")
+                    try:
+                        fetched_transcript = api.fetch(video_id, languages=['en'])
+                        transcript = fetched_transcript.to_raw_data()
+                        print(f"✅ English transcript extracted successfully: {len(transcript)} segments")
+                        return transcript, 'en'
+                    except NoTranscriptFound:
+                        print("❌ No transcript found in Japanese or English")
+                        return None, None
+                        
+            except TranscriptsDisabled:
+                print("❌ Transcripts are disabled for this video")
+                return None, None
+            except Exception as e:
+                print(f"❌ Transcript extraction error: {e}")
+                return None, None
+        
+        def format_transcript(transcript):
+            if not transcript:
+                return ""
+            return ' '.join([item['text'] for item in transcript])
+        
+        def create_summary(text):
+            sentences = text.split('。')
+            important_sentences = [s.strip() + '。' for s in sentences if len(s.strip()) > 15]
+            summary_sentences = important_sentences[:min(8, len(important_sentences))]
+            return ' '.join(summary_sentences)
+        
+        # Get parameters
+        with open('video_id.txt', 'r') as f:
+            video_id = f.read().strip()
+        
+        lang = "${{ github.event.inputs.language }}"
+        output_format = "${{ github.event.inputs.output_format }}"
+        youtube_url = "${{ github.event.inputs.youtube_url }}"
+        
+        # Extract transcript
+        transcript, detected_lang = get_transcript(video_id, lang)
+        
+        if not transcript:
+            print("Failed to extract transcript")
+            exit(1)
+        
+        # Format text
+        raw_text = format_transcript(transcript)
+        formatted_text = raw_text.replace('。', '。\n\n')
+        summary_text = create_summary(raw_text)
+        
+        # Prepare output based on format
+        if output_format == 'raw':
+            output_content = raw_text
+        elif output_format == 'summary_only':
+            output_content = summary_text
+        else:  # formatted
+            output_content = formatted_text
+        
+        # Create timestamp
+        timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Write results
+        result_data = {
+            'video_id': video_id,
+            'youtube_url': youtube_url,
+            'language': detected_lang,
+            'format': output_format,
+            'timestamp': timestamp,
+            'character_count': len(raw_text),
+            'segment_count': len(transcript),
+            'content': output_content,
+            'summary': summary_text if output_format != 'summary_only' else None
+        }
+        
+        # Save as JSON for GitHub Pages
+        with open('result.json', 'w', encoding='utf-8') as f:
+            json.dump(result_data, f, ensure_ascii=False, indent=2)
+        
+        # Save as text file
+        with open('transcript_result.txt', 'w', encoding='utf-8') as f:
+            f.write(f"YouTube Transcript Extraction Result\n")
+            f.write(f"{'='*50}\n")
+            f.write(f"Video ID: {video_id}\n")
+            f.write(f"URL: {youtube_url}\n")
+            f.write(f"Language: {detected_lang}\n")
+            f.write(f"Format: {output_format}\n")
+            f.write(f"Processed: {timestamp}\n")
+            f.write(f"Characters: {len(raw_text)}\n")
+            f.write(f"Segments: {len(transcript)}\n")
+            f.write(f"\n{'='*50}\n")
+            f.write(f"Content:\n")
+            f.write(f"{'='*50}\n")
+            f.write(output_content)
+            
+            if output_format != 'summary_only' and summary_text:
+                f.write(f"\n\n{'='*50}\n")
+                f.write(f"Summary:\n")
+                f.write(f"{'='*50}\n")
+                f.write(summary_text)
+        
+        print(f"\n✅ Transcript extraction completed!")
+        print(f"📄 Character count: {len(raw_text)}")
+        print(f"📊 Segment count: {len(transcript)}")
+        print(f"🌐 Language: {detected_lang}")
+        EOF
+        
+    - name: Create HTML result page
+      run: |
+        cat > result.html << 'EOF'
+        <!DOCTYPE html>
+        <html lang="ja">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>YouTube字幕抽出結果</title>
+            <style>
+                body { font-family: 'Segoe UI', sans-serif; line-height: 1.6; margin: 0; padding: 20px; background: #f5f5f5; }
+                .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                .header { text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border-radius: 10px; }
+                .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+                .info-item { background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea; }
+                .info-label { font-weight: bold; color: #555; font-size: 0.9em; }
+                .info-value { margin-top: 5px; color: #333; }
+                .content-section { margin-bottom: 30px; }
+                .content-section h3 { color: #333; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+                .content-text { background: #f8f9fa; padding: 20px; border-radius: 8px; white-space: pre-wrap; line-height: 1.8; max-height: 400px; overflow-y: auto; }
+                .summary-text { background: #e8f5e8; padding: 20px; border-radius: 8px; border-left: 4px solid #4caf50; }
+                .buttons { text-align: center; margin-top: 30px; }
+                .btn { background: #667eea; color: white; padding: 12px 24px; margin: 0 10px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
+                .btn:hover { background: #5a6fd8; }
+                .download-links { background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>🎬 YouTube字幕抽出完了</h1>
+                    <p>GitHub Actions経由での抽出結果</p>
+                </div>
+                
+                <div class="download-links">
+                    <strong>📥 ダウンロード:</strong>
+                    <a href="transcript_result.txt" download class="btn">テキストファイル</a>
+                    <a href="result.json" download class="btn">JSON形式</a>
+                </div>
+                
+                <div id="result-display">
+                    結果を読み込み中...
+                </div>
+            </div>
+            
+            <script>
+                // Load and display result data
+                fetch('result.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        const resultHtml = `
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <div class="info-label">動画ID</div>
+                                    <div class="info-value">${data.video_id}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">言語</div>
+                                    <div class="info-value">${data.language}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">文字数</div>
+                                    <div class="info-value">${data.character_count.toLocaleString()}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">セグメント数</div>
+                                    <div class="info-value">${data.segment_count}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">処理日時</div>
+                                    <div class="info-value">${data.timestamp}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">形式</div>
+                                    <div class="info-value">${data.format}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="content-section">
+                                <h3>📄 抽出内容</h3>
+                                <div class="content-text">${data.content}</div>
+                            </div>
+                            
+                            ${data.summary && data.format !== 'summary_only' ? `
+                                <div class="content-section">
+                                    <h3>📋 要約</h3>
+                                    <div class="summary-text">${data.summary}</div>
+                                </div>
+                            ` : ''}
+                            
+                            <div class="buttons">
+                                <button class="btn" onclick="copyToClipboard('${data.content.replace(/'/g, "\\'")}')">📋 内容をコピー</button>
+                                <a href="${data.youtube_url}" target="_blank" class="btn">🎥 元動画を開く</a>
+                            </div>
+                        `;
+                        
+                        document.getElementById('result-display').innerHTML = resultHtml;
+                    })
+                    .catch(error => {
+                        document.getElementById('result-display').innerHTML = 
+                            `<div style="color: red; text-align: center;">
+                                ❌ 結果の読み込みに失敗しました: ${error}
+                            </div>`;
+                    });
+                
+                function copyToClipboard(text) {
+                    navigator.clipboard.writeText(text).then(() => {
+                        alert('📋 クリップボードにコピーしました！');
+                    }).catch(() => {
+                        alert('❌ コピーに失敗しました');
+                    });
+                }
+            </script>
+        </body>
+        </html>
+        EOF
+        
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: .
+        destination_dir: results/${{ github.run_number }}
+        
+    - name: Create result summary
+      run: |
+        echo "## 🎬 字幕抽出完了" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 結果" >> $GITHUB_STEP_SUMMARY
+        echo "- **動画ID**: $(cat video_id.txt)" >> $GITHUB_STEP_SUMMARY
+        echo "- **言語**: ${{ github.event.inputs.language }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **形式**: ${{ github.event.inputs.output_format }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **文字数**: $(wc -c < transcript_result.txt | tr -d ' ') 文字" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🌐 結果表示" >> $GITHUB_STEP_SUMMARY
+        echo "- [📄 HTML結果ページ](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/results/${{ github.run_number }}/result.html)" >> $GITHUB_STEP_SUMMARY
+        echo "- [📥 テキストファイル](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/results/${{ github.run_number }}/transcript_result.txt)" >> $GITHUB_STEP_SUMMARY
+        echo "- [📊 JSON形式](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/results/${{ github.run_number }}/result.json)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 プレビュー" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        head -c 300 transcript_result.txt | tail -c +200 >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "..." >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: transcript-results
+        path: |
+          transcript_result.txt
+          result.json
+          result.html

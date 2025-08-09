@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube字幕抽出 - GitHub Actions版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+        
+        .main-content {
+            padding: 40px;
+        }
+        
+        .method-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .method-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .method-title {
+            font-size: 1.4em;
+            color: #2d3436;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .method-icon {
+            font-size: 1.5em;
+        }
+        
+        .method-description {
+            color: #636e72;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2d3436;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-large {
+            padding: 15px 40px;
+            font-size: 18px;
+            width: 100%;
+        }
+        
+        .status-area {
+            background: #f1f3f4;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            min-height: 100px;
+            font-family: monospace;
+            display: none;
+        }
+        
+        .github-link {
+            background: #24292e;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .github-link:hover {
+            background: #1a1e22;
+        }
+        
+        .steps-list {
+            list-style: none;
+            counter-reset: step-counter;
+        }
+        
+        .steps-list li {
+            counter-increment: step-counter;
+            margin-bottom: 15px;
+            padding-left: 40px;
+            position: relative;
+        }
+        
+        .steps-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: #667eea;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .result-area {
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 YouTube字幕抽出</h1>
+            <p>GitHub Actions経由でIPブロック回避</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="warning">
+                <strong>⚠️ 注意:</strong> この方法はCloud RunのIPブロック問題を回避するための迂回手段です。
+            </div>
+            
+            <!-- 方法1: GitHub Actions -->
+            <div class="method-card">
+                <div class="method-title">
+                    <span class="method-icon">🔧</span>
+                    方法1: GitHub Actions自動実行
+                </div>
+                <div class="method-description">
+                    GitHub Actionsでスクリプトを実行し、結果をGitHub Pagesで表示
+                </div>
+                
+                <div class="input-group">
+                    <label for="github-url">YouTube URL:</label>
+                    <input type="text" id="github-url" placeholder="https://www.youtube.com/watch?v=...">
+                </div>
+                
+                <div class="input-group">
+                    <label for="github-lang">言語:</label>
+                    <select id="github-lang">
+                        <option value="ja">日本語</option>
+                        <option value="en">English</option>
+                        <option value="ko">한국어</option>
+                        <option value="zh">中文</option>
+                    </select>
+                </div>
+                
+                <button class="btn btn-large" onclick="triggerGitHubAction()">
+                    GitHub Actionsで実行
+                </button>
+                
+                <div class="status-area" id="github-status">
+                    <div>📝 手順:</div>
+                    <ol class="steps-list">
+                        <li>上記のURLと言語を設定してボタンをクリック</li>
+                        <li>GitHubリポジトリが開きます</li>
+                        <li>Actions > Manual Transcript Extraction を選択</li>
+                        <li>Run workflow でパラメータを入力</li>
+                        <li>数分後に結果がPages URLに表示されます</li>
+                    </ol>
+                </div>
+                
+                <a href="https://github.com/Tenormusica2024/youtube-transcript-cloudrun" 
+                   class="github-link" target="_blank">
+                    <span>📂</span> GitHubリポジトリを開く
+                </a>
+            </div>
+            
+            <!-- 方法2: GitHub Codespaces -->
+            <div class="method-card">
+                <div class="method-title">
+                    <span class="method-icon">☁️</span>
+                    方法2: GitHub Codespaces
+                </div>
+                <div class="method-description">
+                    ブラウザ上のVS Codeで直接Pythonスクリプトを実行
+                </div>
+                
+                <button class="btn btn-large" onclick="openCodespaces()">
+                    Codespacesで開く
+                </button>
+                
+                <div class="status-area" id="codespaces-status" style="display: block;">
+                    <div>📝 手順:</div>
+                    <ol class="steps-list">
+                        <li>上記ボタンでCodespacesが開きます</li>
+                        <li>ターミナルで <code>python local_transcript_extractor.py</code> を実行</li>
+                        <li>YouTube URLを入力してEnter</li>
+                        <li>数分後にテキストファイルが生成されます</li>
+                        <li>ファイルエクスプローラーからダウンロード可能</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- 方法3: Replit -->
+            <div class="method-card">
+                <div class="method-title">
+                    <span class="method-icon">🌐</span>
+                    方法3: Replit Online IDE
+                </div>
+                <div class="method-description">
+                    Replitでオンライン実行環境を利用
+                </div>
+                
+                <button class="btn btn-large" onclick="openReplit()">
+                    Replitで開く
+                </button>
+                
+                <div class="status-area" id="replit-status" style="display: block;">
+                    <div>📝 手順:</div>
+                    <ol class="steps-list">
+                        <li>上記ボタンでReplitが開きます</li>
+                        <li>Runボタンでスクリプト実行</li>
+                        <li>コンソールでYouTube URLを入力</li>
+                        <li>結果がファイルに保存されます</li>
+                        <li>Filesタブからダウンロード</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- 方法4: ブラウザ拡張機能 -->
+            <div class="method-card">
+                <div class="method-title">
+                    <span class="method-icon">🧩</span>
+                    方法4: ブラウザ拡張機能
+                </div>
+                <div class="method-description">
+                    YouTube画面に直接字幕抽出ボタンを追加
+                </div>
+                
+                <button class="btn btn-large" onclick="showExtensionInfo()">
+                    拡張機能について
+                </button>
+                
+                <div class="status-area" id="extension-status">
+                    <div>🚧 開発中の機能:</div>
+                    <p>YouTubeの動画ページに「字幕抽出」ボタンを追加する拡張機能を開発中です。</p>
+                    <p>完成すると、YouTube動画を見ながらワンクリックで字幕を抽出できるようになります。</p>
+                </div>
+            </div>
+            
+            <!-- 結果表示エリア -->
+            <div class="result-area" id="result-area">
+                <h3>✅ 処理完了</h3>
+                <p>結果がGitHub Pages または一時ファイルに保存されました。</p>
+                <div id="result-links"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function triggerGitHubAction() {
+            const url = document.getElementById('github-url').value.trim();
+            const lang = document.getElementById('github-lang').value;
+            
+            if (!url) {
+                alert('YouTube URLを入力してください');
+                return;
+            }
+            
+            // GitHub Actions の手動トリガーページを開く
+            const repoUrl = 'https://github.com/Tenormusica2024/youtube-transcript-cloudrun/actions/workflows/extract-transcript.yml';
+            
+            // パラメータをクリップボードにコピー
+            const params = `URL: ${url}\n言語: ${lang}`;
+            navigator.clipboard.writeText(params).then(() => {
+                document.getElementById('github-status').style.display = 'block';
+                
+                // 3秒後にGitHubを開く
+                setTimeout(() => {
+                    window.open(repoUrl, '_blank');
+                }, 3000);
+            });
+        }
+        
+        function openCodespaces() {
+            const codespacesUrl = 'https://github.com/Tenormusica2024/youtube-transcript-cloudrun';
+            window.open(codespacesUrl + '/codespaces', '_blank');
+        }
+        
+        function openReplit() {
+            const replitUrl = 'https://replit.com/github/Tenormusica2024/youtube-transcript-cloudrun';
+            window.open(replitUrl, '_blank');
+        }
+        
+        function showExtensionInfo() {
+            document.getElementById('extension-status').style.display = 
+                document.getElementById('extension-status').style.display === 'block' ? 'none' : 'block';
+        }
+        
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            // URLパラメータから値を取得
+            const urlParams = new URLSearchParams(window.location.search);
+            const youtubeUrl = urlParams.get('url');
+            const lang = urlParams.get('lang');
+            
+            if (youtubeUrl) {
+                document.getElementById('github-url').value = youtubeUrl;
+            }
+            if (lang) {
+                document.getElementById('github-lang').value = lang;
+            }
+        });
+    </script>
+</body>
+</html>
