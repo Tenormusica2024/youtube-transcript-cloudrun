@@ -8,6 +8,7 @@ import json
 import logging
 import time
 import random
+import socket
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
 from flask import Flask, request, jsonify, render_template
@@ -82,6 +83,59 @@ except Exception as e:
     logger.error(f"Failed to initialize Gemini API client: {e}")
     gemini_client = None
 
+# 無料プロキシリスト（実用性は限定的だが、試行用）
+FREE_PROXIES = [
+    {'http': 'http://proxy-server.com:8080', 'https': 'https://proxy-server.com:8080'},
+    # 注意: 実際のプロキシサーバーのIPアドレスに置き換える必要があります
+]
+
+def get_working_proxy():
+    """動作するプロキシを検索（簡易版）"""
+    for proxy in FREE_PROXIES:
+        try:
+            response = requests.get('https://httpbin.org/ip', proxies=proxy, timeout=5)
+            if response.status_code == 200:
+                logger.info(f"Working proxy found: {proxy}")
+                return proxy
+        except:
+            continue
+    return None
+
+def create_transcript_session_with_proxy():
+    """プロキシ付きセッションを作成"""
+    session = requests.Session()
+    
+    # プロキシを試行
+    proxy = get_working_proxy()
+    if proxy:
+        session.proxies.update(proxy)
+        logger.info("Using proxy for transcript request")
+    
+    # User-Agentをランダム化
+    user_agents = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/121.0'
+    ]
+    
+    session.headers.update({
+        'User-Agent': random.choice(user_agents),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Cache-Control': 'max-age=0'
+    })
+    
+    return session
+
 def get_video_id(url):
     """YouTube URLから動画IDを抽出"""
     try:
@@ -127,93 +181,113 @@ def get_video_title(video_id):
         return "タイトル取得エラー"
 
 def get_transcript(video_id, lang='ja'):
-    """字幕を取得"""
+    """字幕を取得（プロキシ付きで試行）"""
     try:
-        # v1.2.2の正しいAPIを使用
         logger.info(f"Attempting to get transcript for video {video_id} in language {lang}")
         
-        # カスタムセッションを作成してUser-Agentを偽装
-        session = requests.Session()
-        session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'DNT': '1',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-        })
+        # 複数の戦略で試行
+        strategies = [
+            ('proxy_session', 'プロキシ付きセッション'),
+            ('stealth_session', 'ステルスセッション'),
+            ('minimal_session', 'ミニマルセッション')
+        ]
         
-        # APIインスタンスを作成
-        api = YouTubeTranscriptApi(session=session)
-        
-        # レート制限対策のため少し待機
-        time.sleep(random.uniform(2, 5))
-        
-        # fetchメソッドで字幕を取得
-        fetched_transcript = api.fetch(video_id, languages=[lang])
-        
-        # FetchedTranscriptオブジェクトから生データを取得
-        transcript = fetched_transcript.to_raw_data()
-        
-        logger.info(f"Found transcript in {lang} for video {video_id}, {len(transcript)} segments")
-        return transcript
-        
-    except NoTranscriptFound:
-        try:
-            # 英語で再試行
-            logger.info(f"Japanese transcript not found, trying English for video {video_id}")
-            time.sleep(random.uniform(3, 6))  # さらに長く待機
-            
-            # 新しいセッションで再試行
-            session2 = requests.Session()
-            session2.headers.update({
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-            })
-            
-            api = YouTubeTranscriptApi(session=session2)
-            fetched_transcript = api.fetch(video_id, languages=['en'])
-            transcript = fetched_transcript.to_raw_data()
+        for strategy, description in strategies:
+            try:
+                logger.info(f"Trying {description} for video {video_id}")
                 
-            logger.info(f"Found transcript in English for video {video_id}, {len(transcript)} segments")
+                if strategy == 'proxy_session':
+                    session = create_transcript_session_with_proxy()
+                elif strategy == 'stealth_session':
+                    session = requests.Session()
+                    session.headers.update({
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        'Accept': '*/*',
+                        'Accept-Language': 'en-US,en;q=0.5',
+                        'Connection': 'keep-alive'
+                    })
+                else:  # minimal_session
+                    session = requests.Session()
+                    session.headers.update({
+                        'User-Agent': 'YouTube Transcript API 1.2.2'
+                    })
+                
+                # レート制限対策
+                delay = random.uniform(3, 8)
+                logger.info(f"Waiting {delay:.1f} seconds before request...")
+                time.sleep(delay)
+                
+                # APIインスタンスを作成して試行
+                api = YouTubeTranscriptApi(session=session)
+                fetched_transcript = api.fetch(video_id, languages=[lang])
+                transcript = fetched_transcript.to_raw_data()
+                
+                logger.info(f"Success with {description}! Found {len(transcript)} segments")
+                return transcript
+                
+            except Exception as strategy_error:
+                logger.warning(f"{description} failed: {str(strategy_error)}")
+                continue
+        
+        # 英語でも同じ戦略を試行
+        for strategy, description in strategies:
+            try:
+                logger.info(f"Trying {description} for English transcript")
+                
+                if strategy == 'proxy_session':
+                    session = create_transcript_session_with_proxy()
+                elif strategy == 'stealth_session':
+                    session = requests.Session()
+                    session.headers.update({
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                        'Accept': '*/*',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                    })
+                else:  # minimal_session
+                    session = requests.Session()
+                
+                time.sleep(random.uniform(4, 9))
+                api = YouTubeTranscriptApi(session=session)
+                fetched_transcript = api.fetch(video_id, languages=['en'])
+                transcript = fetched_transcript.to_raw_data()
+                
+                logger.info(f"English success with {description}! Found {len(transcript)} segments")
+                return transcript
+                
+            except Exception as en_error:
+                logger.warning(f"English {description} failed: {str(en_error)}")
+                continue
+        
+        # 最後の試行：auto言語検出
+        try:
+            logger.info("Final attempt with auto language detection...")
+            time.sleep(random.uniform(5, 12))
+            
+            session = requests.Session()
+            session.headers.update({'User-Agent': 'youtube-transcript-extractor/1.0'})
+            
+            api = YouTubeTranscriptApi(session=session)
+            fetched_transcript = api.fetch(video_id, languages=['auto', 'en', lang])
+            transcript = fetched_transcript.to_raw_data()
+            
+            logger.info(f"Auto detection success! Found {len(transcript)} segments")
             return transcript
-        except NoTranscriptFound:
-            error_msg = "指定された言語の字幕が見つかりません（日本語・英語共に）。"
-            logger.warning(f"No transcript found for video {video_id} in any language")
-            raise ValueError(error_msg)
+            
+        except Exception as auto_error:
+            logger.error(f"All methods failed for video {video_id}: {auto_error}")
+            
+    except NoTranscriptFound:
+        error_msg = "この動画には字幕が存在しないか、利用できません。"
+        logger.warning(f"No transcript available for video {video_id}")
+        raise ValueError(error_msg)
     except TranscriptsDisabled:
         error_msg = "この動画の字幕は無効化されています。"
         logger.warning(f"Transcripts disabled for video {video_id}")
         raise ValueError(error_msg)
     except Exception as e:
         error_msg = f"字幕の取得に失敗しました: {str(e)}"
-        logger.error(f"Error fetching transcript for video {video_id}: {e}")
-        
-        # 最後の試行：より長い遅延で再試行
-        try:
-            logger.info("Attempting final retry with extended delay...")
-            time.sleep(random.uniform(5, 10))
-            
-            # 最終試行用のシンプルなセッション
-            final_session = requests.Session()
-            final_session.headers.update({
-                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-            })
-            
-            api_final = YouTubeTranscriptApi(session=final_session)
-            fetched_transcript = api_final.fetch(video_id, languages=[lang, 'en', 'auto'])
-            transcript = fetched_transcript.to_raw_data()
-            
-            logger.info(f"Final retry succeeded for video {video_id}")
-            return transcript
-            
-        except Exception as final_error:
-            logger.error(f"Final retry also failed for video {video_id}: {final_error}")
-            raise ValueError(error_msg)
+        logger.error(f"Final error for video {video_id}: {e}")
+        raise ValueError(error_msg)
 
 def format_transcript(transcript, format_type='txt'):
     """字幕をフォーマット"""
