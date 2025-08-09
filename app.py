@@ -14,6 +14,7 @@ from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from dotenv import load_dotenv
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled, NoTranscriptFound
+import requests
 import googleapiclient.discovery
 import googleapiclient.errors
 from google import genai
@@ -131,11 +132,23 @@ def get_transcript(video_id, lang='ja'):
         # v1.2.2の正しいAPIを使用
         logger.info(f"Attempting to get transcript for video {video_id} in language {lang}")
         
-        # APIインスタンスを作成（User-Agentを設定）
-        api = YouTubeTranscriptApi()
+        # カスタムセッションを作成してUser-Agentを偽装
+        session = requests.Session()
+        session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+        })
+        
+        # APIインスタンスを作成
+        api = YouTubeTranscriptApi(session=session)
         
         # レート制限対策のため少し待機
-        time.sleep(random.uniform(1, 3))
+        time.sleep(random.uniform(2, 5))
         
         # fetchメソッドで字幕を取得
         fetched_transcript = api.fetch(video_id, languages=[lang])
@@ -150,8 +163,19 @@ def get_transcript(video_id, lang='ja'):
         try:
             # 英語で再試行
             logger.info(f"Japanese transcript not found, trying English for video {video_id}")
-            time.sleep(random.uniform(2, 4))  # さらに長く待機
-            api = YouTubeTranscriptApi()
+            time.sleep(random.uniform(3, 6))  # さらに長く待機
+            
+            # 新しいセッションで再試行
+            session2 = requests.Session()
+            session2.headers.update({
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+            })
+            
+            api = YouTubeTranscriptApi(session=session2)
             fetched_transcript = api.fetch(video_id, languages=['en'])
             transcript = fetched_transcript.to_raw_data()
                 
@@ -168,7 +192,28 @@ def get_transcript(video_id, lang='ja'):
     except Exception as e:
         error_msg = f"字幕の取得に失敗しました: {str(e)}"
         logger.error(f"Error fetching transcript for video {video_id}: {e}")
-        raise ValueError(error_msg)
+        
+        # 最後の試行：より長い遅延で再試行
+        try:
+            logger.info("Attempting final retry with extended delay...")
+            time.sleep(random.uniform(5, 10))
+            
+            # 最終試行用のシンプルなセッション
+            final_session = requests.Session()
+            final_session.headers.update({
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            })
+            
+            api_final = YouTubeTranscriptApi(session=final_session)
+            fetched_transcript = api_final.fetch(video_id, languages=[lang, 'en', 'auto'])
+            transcript = fetched_transcript.to_raw_data()
+            
+            logger.info(f"Final retry succeeded for video {video_id}")
+            return transcript
+            
+        except Exception as final_error:
+            logger.error(f"Final retry also failed for video {video_id}: {final_error}")
+            raise ValueError(error_msg)
 
 def format_transcript(transcript, format_type='txt'):
     """字幕をフォーマット"""
