@@ -126,7 +126,61 @@ jobs:
                 return ""
             return ' '.join([item['text'] for item in transcript])
         
-        def create_summary(text):
+        def create_summary_with_gemini(text):
+            """Gemini AIを使用した高品質要約"""
+            try:
+                import requests
+                import json
+                
+                # Gemini API設定
+                api_key = "AIzaSyBKVL0MW3hbTFX7llfbuF0TL73SKNR2Rfw"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={api_key}"
+                
+                # プロンプト作成
+                prompt = f"""以下のYouTube字幕テキストを500-800文字程度で詳細に要約してください。
+主要なポイントや話の流れを含めて、内容を理解しやすくまとめてください。
+
+テキスト:
+{text[:4000]}"""  # テキストを制限
+                
+                payload = {
+                    "contents": [{
+                        "parts": [{
+                            "text": prompt
+                        }]
+                    }],
+                    "generationConfig": {
+                        "temperature": 0.3,
+                        "topK": 40,
+                        "topP": 0.95,
+                        "maxOutputTokens": 1024
+                    }
+                }
+                
+                response = requests.post(url, 
+                                       headers={'Content-Type': 'application/json'}, 
+                                       json=payload, 
+                                       timeout=30)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    if 'candidates' in result and len(result['candidates']) > 0:
+                        summary = result['candidates'][0]['content']['parts'][0]['text'].strip()
+                        print(f"✅ Gemini AI要約生成成功: {len(summary)} 文字")
+                        return summary
+                    else:
+                        print("⚠️ Gemini API応答形式エラー")
+                        return create_simple_summary(text)
+                else:
+                    print(f"⚠️ Gemini API エラー: {response.status_code}")
+                    return create_simple_summary(text)
+                    
+            except Exception as e:
+                print(f"⚠️ Gemini AI要約エラー: {e}")
+                return create_simple_summary(text)
+        
+        def create_simple_summary(text):
+            """シンプルな要約（フォールバック用）"""
             sentences = text.split('。')
             important_sentences = [s.strip() + '。' for s in sentences if len(s.strip()) > 15]
             summary_sentences = important_sentences[:min(8, len(important_sentences))]
@@ -150,7 +204,10 @@ jobs:
         # Format text
         raw_text = format_transcript(transcript)
         formatted_text = raw_text.replace('。', '。\n\n')
-        summary_text = create_summary(raw_text)
+        
+        # AI要約生成
+        print("🤖 Gemini AIで要約生成中...")
+        summary_text = create_summary_with_gemini(raw_text)
         
         # Prepare output based on format
         if output_format == 'raw':
@@ -208,7 +265,7 @@ jobs:
         print(f"🌐 Language: {detected_lang}")
         EOF
         
-    - name: Create HTML result page
+    - name: Create HTML result page with Cloud Run style
       run: |
         cat > result.html << 'EOF'
         <!DOCTYPE html>
@@ -218,38 +275,83 @@ jobs:
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>YouTube字幕抽出結果</title>
             <style>
-                body { font-family: 'Segoe UI', sans-serif; line-height: 1.6; margin: 0; padding: 20px; background: #f5f5f5; }
-                .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-                .header { text-align: center; margin-bottom: 30px; padding: 20px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border-radius: 10px; }
-                .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
-                .info-item { background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea; }
-                .info-label { font-weight: bold; color: #555; font-size: 0.9em; }
-                .info-value { margin-top: 5px; color: #333; }
-                .content-section { margin-bottom: 30px; }
-                .content-section h3 { color: #333; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
-                .content-text { background: #f8f9fa; padding: 20px; border-radius: 8px; white-space: pre-wrap; line-height: 1.8; max-height: 400px; overflow-y: auto; }
-                .summary-text { background: #e8f5e8; padding: 20px; border-radius: 8px; border-left: 4px solid #4caf50; }
-                .buttons { text-align: center; margin-top: 30px; }
-                .btn { background: #667eea; color: white; padding: 12px 24px; margin: 0 10px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
-                .btn:hover { background: #5a6fd8; }
-                .download-links { background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+                .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); overflow: hidden; }
+                .header { background: linear-gradient(45deg, #ff6b6b, #ee5a24); color: white; padding: 30px; text-align: center; }
+                .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+                .header p { opacity: 0.9; font-size: 1.1em; }
+                .status-info { background: #e8f5e8; border: 1px solid #4caf50; border-radius: 10px; margin: 20px; padding: 20px; }
+                .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+                .status-item { background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #4caf50; }
+                .status-label { font-weight: bold; color: #2e7d32; font-size: 0.9em; }
+                .status-value { margin-top: 5px; color: #1b5e20; font-weight: 600; }
+                .result-section { padding: 30px; }
+                .result-header { font-size: 1.4em; color: #2d3436; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+                .result-content { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 10px; padding: 25px; margin-bottom: 25px; font-size: 16px; line-height: 1.8; white-space: pre-wrap; max-height: 500px; overflow-y: auto; }
+                .summary-section { background: #fff3cd; border: 1px solid #ffc107; border-radius: 10px; padding: 25px; margin: 25px 0; }
+                .summary-header { color: #856404; font-size: 1.3em; font-weight: bold; margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
+                .summary-content { color: #6c5700; font-size: 16px; line-height: 1.8; white-space: pre-wrap; }
+                .buttons { text-align: center; padding: 20px; background: #f8f9fa; }
+                .btn { background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none; padding: 12px 25px; margin: 0 10px; border-radius: 25px; font-size: 16px; font-weight: 600; cursor: pointer; transition: transform 0.3s ease; text-decoration: none; display: inline-block; }
+                .btn:hover { transform: translateY(-2px); }
+                .download-section { background: linear-gradient(135deg, #74b9ff, #0984e3); color: white; padding: 20px; text-align: center; }
+                .download-btn { background: rgba(255,255,255,0.2); color: white; border: 2px solid white; padding: 10px 20px; margin: 0 5px; border-radius: 20px; cursor: pointer; text-decoration: none; display: inline-block; }
+                .download-btn:hover { background: rgba(255,255,255,0.3); }
+                .success-icon { color: #4caf50; font-size: 2em; margin-bottom: 10px; }
+                @media (max-width: 768px) {
+                    .container { margin: 10px; border-radius: 10px; }
+                    .header { padding: 20px; }
+                    .header h1 { font-size: 2em; }
+                    .result-section { padding: 20px; }
+                }
             </style>
         </head>
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>🎬 YouTube字幕抽出完了</h1>
-                    <p>GitHub Actions経由での抽出結果</p>
+                    <div class="success-icon">✅</div>
+                    <h1>YouTube字幕抽出完了</h1>
+                    <p>GitHub Actions経由での処理が完了しました</p>
                 </div>
                 
-                <div class="download-links">
-                    <strong>📥 ダウンロード:</strong>
-                    <a href="transcript_result.txt" download class="btn">テキストファイル</a>
-                    <a href="result.json" download class="btn">JSON形式</a>
+                <div class="status-info">
+                    <h3 style="color: #2e7d32; margin-bottom: 15px;">📊 抽出結果サマリー</h3>
+                    <div id="status-display">
+                        結果を読み込み中...
+                    </div>
                 </div>
                 
-                <div id="result-display">
-                    結果を読み込み中...
+                <div class="result-section">
+                    <div class="result-header">
+                        <span>📄</span>抽出された字幕テキスト
+                    </div>
+                    <div class="result-content" id="transcript-content">
+                        読み込み中...
+                    </div>
+                    
+                    <div id="summary-section" style="display: none;">
+                        <div class="summary-section">
+                            <div class="summary-header">
+                                <span>📋</span>要約
+                            </div>
+                            <div class="summary-content" id="summary-content">
+                                読み込み中...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="download-section">
+                    <h3 style="margin-bottom: 15px;">📥 ダウンロード</h3>
+                    <a href="transcript_result.txt" download class="download-btn">📄 テキストファイル</a>
+                    <a href="result.json" download class="download-btn">📊 JSON形式</a>
+                </div>
+                
+                <div class="buttons">
+                    <button class="btn" onclick="copyToClipboard(document.getElementById('transcript-content').textContent)">📋 全文コピー</button>
+                    <button class="btn" onclick="copyToClipboard(document.getElementById('summary-content').textContent)" id="copy-summary-btn" style="display: none;">📝 要約コピー</button>
+                    <button class="btn" onclick="location.reload()">🔄 再読み込み</button>
                 </div>
             </div>
             
@@ -258,68 +360,93 @@ jobs:
                 fetch('result.json')
                     .then(response => response.json())
                     .then(data => {
-                        const resultHtml = `
-                            <div class="info-grid">
-                                <div class="info-item">
-                                    <div class="info-label">動画ID</div>
-                                    <div class="info-value">${data.video_id}</div>
+                        // Display status information
+                        const statusHtml = `
+                            <div class="status-grid">
+                                <div class="status-item">
+                                    <div class="status-label">動画ID</div>
+                                    <div class="status-value">${data.video_id}</div>
                                 </div>
-                                <div class="info-item">
-                                    <div class="info-label">言語</div>
-                                    <div class="info-value">${data.language}</div>
+                                <div class="status-item">
+                                    <div class="status-label">検出言語</div>
+                                    <div class="status-value">${data.language.toUpperCase()}</div>
                                 </div>
-                                <div class="info-item">
-                                    <div class="info-label">文字数</div>
-                                    <div class="info-value">${data.character_count.toLocaleString()}</div>
+                                <div class="status-item">
+                                    <div class="status-label">文字数</div>
+                                    <div class="status-value">${data.character_count.toLocaleString()} 文字</div>
                                 </div>
-                                <div class="info-item">
-                                    <div class="info-label">セグメント数</div>
-                                    <div class="info-value">${data.segment_count}</div>
+                                <div class="status-item">
+                                    <div class="status-label">セグメント数</div>
+                                    <div class="status-value">${data.segment_count} セグメント</div>
                                 </div>
-                                <div class="info-item">
-                                    <div class="info-label">処理日時</div>
-                                    <div class="info-value">${data.timestamp}</div>
+                                <div class="status-item">
+                                    <div class="status-label">処理日時</div>
+                                    <div class="status-value">${data.timestamp}</div>
                                 </div>
-                                <div class="info-item">
-                                    <div class="info-label">形式</div>
-                                    <div class="info-value">${data.format}</div>
+                                <div class="status-item">
+                                    <div class="status-label">出力形式</div>
+                                    <div class="status-value">${data.format}</div>
                                 </div>
-                            </div>
-                            
-                            <div class="content-section">
-                                <h3>📄 抽出内容</h3>
-                                <div class="content-text">${data.content}</div>
-                            </div>
-                            
-                            ${data.summary && data.format !== 'summary_only' ? `
-                                <div class="content-section">
-                                    <h3>📋 要約</h3>
-                                    <div class="summary-text">${data.summary}</div>
-                                </div>
-                            ` : ''}
-                            
-                            <div class="buttons">
-                                <button class="btn" onclick="copyToClipboard('${data.content.replace(/'/g, "\\'")}')">📋 内容をコピー</button>
-                                <a href="${data.youtube_url}" target="_blank" class="btn">🎥 元動画を開く</a>
                             </div>
                         `;
+                        document.getElementById('status-display').innerHTML = statusHtml;
                         
-                        document.getElementById('result-display').innerHTML = resultHtml;
+                        // Display transcript content
+                        document.getElementById('transcript-content').textContent = data.content;
+                        
+                        // Display summary if available
+                        if (data.summary && data.format !== 'summary_only') {
+                            document.getElementById('summary-section').style.display = 'block';
+                            document.getElementById('summary-content').textContent = data.summary;
+                            document.getElementById('copy-summary-btn').style.display = 'inline-block';
+                        }
+                        
+                        // Update page title with video ID
+                        document.title = `YouTube字幕抽出結果 - ${data.video_id}`;
+                        
                     })
                     .catch(error => {
-                        document.getElementById('result-display').innerHTML = 
-                            `<div style="color: red; text-align: center;">
-                                ❌ 結果の読み込みに失敗しました: ${error}
+                        document.getElementById('status-display').innerHTML = 
+                            `<div style="color: #d32f2f; text-align: center; padding: 20px;">
+                                ❌ 結果の読み込みに失敗しました<br>
+                                エラー: ${error.message || error}
+                            </div>`;
+                        document.getElementById('transcript-content').innerHTML = 
+                            `<div style="color: #d32f2f; text-align: center;">
+                                結果ファイルが見つかりません。処理が完了していない可能性があります。
                             </div>`;
                     });
                 
                 function copyToClipboard(text) {
-                    navigator.clipboard.writeText(text).then(() => {
-                        alert('📋 クリップボードにコピーしました！');
+                    if (!text || text.trim() === '' || text.trim() === '読み込み中...') {
+                        alert('❌ コピーするテキストがありません');
+                        return;
+                    }
+                    
+                    navigator.clipboard.writeText(text.trim()).then(() => {
+                        // 成功時のフィードバック
+                        const button = event.target;
+                        const originalText = button.textContent;
+                        button.textContent = '✅ コピー完了!';
+                        button.style.background = '#4caf50';
+                        
+                        setTimeout(() => {
+                            button.textContent = originalText;
+                            button.style.background = '';
+                        }, 2000);
                     }).catch(() => {
-                        alert('❌ コピーに失敗しました');
+                        alert('❌ クリップボードへのコピーに失敗しました');
                     });
                 }
+                
+                // Auto-refresh status every 30 seconds if data not loaded
+                let refreshInterval = setInterval(() => {
+                    if (document.getElementById('transcript-content').textContent === '読み込み中...') {
+                        location.reload();
+                    } else {
+                        clearInterval(refreshInterval);
+                    }
+                }, 30000);
             </script>
         </body>
         </html>
