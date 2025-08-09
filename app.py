@@ -217,8 +217,8 @@ def get_transcript(video_id, lang='ja'):
                 logger.info(f"Waiting {delay:.1f} seconds before request...")
                 time.sleep(delay)
                 
-                # APIインスタンスを作成して試行
-                api = YouTubeTranscriptApi(session=session)
+                # APIインスタンスを作成して試行（http_clientパラメータを使用）
+                api = YouTubeTranscriptApi(http_client=session)
                 fetched_transcript = api.fetch(video_id, languages=[lang])
                 transcript = fetched_transcript.to_raw_data()
                 
@@ -247,7 +247,7 @@ def get_transcript(video_id, lang='ja'):
                     session = requests.Session()
                 
                 time.sleep(random.uniform(4, 9))
-                api = YouTubeTranscriptApi(session=session)
+                api = YouTubeTranscriptApi(http_client=session)
                 fetched_transcript = api.fetch(video_id, languages=['en'])
                 transcript = fetched_transcript.to_raw_data()
                 
@@ -266,7 +266,7 @@ def get_transcript(video_id, lang='ja'):
             session = requests.Session()
             session.headers.update({'User-Agent': 'youtube-transcript-extractor/1.0'})
             
-            api = YouTubeTranscriptApi(session=session)
+            api = YouTubeTranscriptApi(http_client=session)
             fetched_transcript = api.fetch(video_id, languages=['auto', 'en', lang])
             transcript = fetched_transcript.to_raw_data()
             
