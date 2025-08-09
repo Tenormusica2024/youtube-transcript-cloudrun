@@ -37,6 +37,3 @@ steps:
 images:
   - 'gcr.io/$PROJECT_ID/youtube-transcript-app:$BUILD_ID'
 
-# Configuration for build
-options:
-  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
