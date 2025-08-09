@@ -83,22 +83,12 @@ except Exception as e:
     logger.error(f"Failed to initialize Gemini API client: {e}")
     gemini_client = None
 
-# 無料プロキシリスト（実用性は限定的だが、試行用）
-FREE_PROXIES = [
-    {'http': 'http://proxy-server.com:8080', 'https': 'https://proxy-server.com:8080'},
-    # 注意: 実際のプロキシサーバーのIPアドレスに置き換える必要があります
-]
+# プロキシ機能は一時的に無効化（接続エラーを避けるため）
+FREE_PROXIES = []
 
 def get_working_proxy():
-    """動作するプロキシを検索（簡易版）"""
-    for proxy in FREE_PROXIES:
-        try:
-            response = requests.get('https://httpbin.org/ip', proxies=proxy, timeout=5)
-            if response.status_code == 200:
-                logger.info(f"Working proxy found: {proxy}")
-                return proxy
-        except:
-            continue
+    """動作するプロキシを検索（現在は無効化）"""
+    logger.info("Proxy search disabled for debugging")
     return None
 
 def create_transcript_session_with_proxy():
@@ -218,9 +208,16 @@ def get_transcript(video_id, lang='ja'):
                 time.sleep(delay)
                 
                 # APIインスタンスを作成して試行（http_clientパラメータを使用）
-                api = YouTubeTranscriptApi(http_client=session)
-                fetched_transcript = api.fetch(video_id, languages=[lang])
-                transcript = fetched_transcript.to_raw_data()
+                try:
+                    api = YouTubeTranscriptApi(http_client=session)
+                    logger.info(f"Created API instance for {description}")
+                    fetched_transcript = api.fetch(video_id, languages=[lang])
+                    logger.info(f"Fetched transcript for {description}")
+                    transcript = fetched_transcript.to_raw_data()
+                    logger.info(f"Converted to raw data for {description}")
+                except Exception as api_error:
+                    logger.error(f"API error in {description}: {api_error}")
+                    raise api_error
                 
                 logger.info(f"Success with {description}! Found {len(transcript)} segments")
                 return transcript
@@ -420,10 +417,15 @@ def health():
 def extract():
     """字幕抽出エンドポイント"""
     try:
+        logger.info("Extract endpoint called")
         data = request.json
+        logger.info(f"Request data: {data}")
+        
         url = data.get('url')
         lang = data.get('lang', 'ja')
         format_type = data.get('format', 'txt')
+        
+        logger.info(f"Processing URL: {url}, Lang: {lang}, Format: {format_type}")
         
         if not url:
             return jsonify({'error': 'URLが指定されていません'}), 400
@@ -476,8 +478,11 @@ def extract():
         logger.warning(f"User error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 400
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
-        return jsonify({'success': False, 'error': '予期しないエラーが発生しました'}), 500
+        logger.error(f"Unexpected error in extract endpoint: {e}")
+        logger.error(f"Error type: {type(e).__name__}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return jsonify({'success': False, 'error': f'予期しないエラーが発生しました: {str(e)}'}), 500
 
 @app.route('/supported_languages/<video_id>')
 def supported_languages(video_id):
