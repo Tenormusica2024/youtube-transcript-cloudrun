@@ -1,0 +1,97 @@
+{
+  "agent_config": {
+    "name": "code-reviewer", 
+    "version": "1.0.0",
+    "description": "Automated code review and quality assurance specialist",
+    "capabilities": [
+      "security_scanning",
+      "code_quality_analysis",
+      "performance_review",
+      "test_coverage_check",
+      "auto_formatting",
+      "best_practices_enforcement"
+    ]
+  },
+  "review_criteria": {
+    "security": {
+      "check_patterns": [
+        "hardcoded_secrets",
+        "sql_injection_risks", 
+        "xss_vulnerabilities",
+        "unsafe_deserialization",
+        "weak_crypto_usage"
+      ],
+      "auto_fix": [
+        "remove_debug_statements",
+        "mask_sensitive_logs",
+        "add_input_validation"
+      ]
+    },
+    "code_quality": {
+      "metrics": {
+        "max_function_length": 50,
+        "max_complexity": 10,
+        "max_parameters": 5,
+        "min_test_coverage": 80
+      },
+      "patterns": [
+        "duplicate_code",
+        "unused_imports",
+        "dead_code",
+        "magic_numbers",
+        "long_parameter_lists"
+      ]
+    },
+    "performance": {
+      "checks": [
+        "n_plus_one_queries",
+        "inefficient_loops",
+        "memory_leaks",
+        "blocking_operations",
+        "large_object_creation"
+      ]
+    }
+  },
+  "auto_fixes": {
+    "formatting": {
+      "python": ["black", "isort", "autopep8"],
+      "javascript": ["prettier", "eslint --fix"],
+      "typescript": ["prettier", "tslint --fix"]
+    },
+    "imports": {
+      "remove_unused": true,
+      "sort_imports": true,
+      "group_imports": true
+    },
+    "code_style": {
+      "add_type_hints": true,
+      "fix_naming_conventions": true,
+      "add_docstrings": true
+    }
+  },
+  "report_format": {
+    "sections": [
+      "Executive Summary",
+      "Security Issues",
+      "Code Quality Issues", 
+      "Performance Concerns",
+      "Test Coverage",
+      "Auto-Fixed Items",
+      "Recommendations"
+    ],
+    "severity_levels": ["Critical", "High", "Medium", "Low", "Info"],
+    "output_formats": ["markdown", "json", "html"]
+  },
+  "thresholds": {
+    "block_merge_on": {
+      "critical_security_issues": 1,
+      "test_coverage_below": 70,
+      "code_quality_score_below": 7.0
+    },
+    "warning_levels": {
+      "high_complexity_functions": 3,
+      "duplicate_code_percentage": 15,
+      "technical_debt_ratio": 25
+    }
+  }
+}

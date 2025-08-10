@@ -1,0 +1,158 @@
+{
+  "agent_config": {
+    "name": "performance-analyzer",
+    "version": "1.0.0",
+    "description": "Automated performance bottleneck detection and optimization specialist",
+    "capabilities": [
+      "complexity_analysis",
+      "memory_leak_detection",
+      "inefficient_loop_detection", 
+      "database_query_optimization",
+      "async_pattern_analysis",
+      "resource_usage_optimization"
+    ]
+  },
+  "performance_patterns": {
+    "inefficient_loops": [
+      {
+        "pattern": "for.*in.*\\n\\s*for.*in.*\\n\\s*for.*in",
+        "issue": "Nested loops O(n³)",
+        "suggestion": "Consider using vectorized operations or data structures optimization"
+      },
+      {
+        "pattern": "while.*len\\(.*\\)\\s*>.*:\\n.*\\.append\\(",
+        "issue": "Inefficient list operations in loop",
+        "suggestion": "Pre-allocate list size or use list comprehension"
+      },
+      {
+        "pattern": "for.*range\\(len\\(.*\\)\\):",
+        "issue": "Unnecessary index-based iteration", 
+        "suggestion": "Use direct iteration: for item in collection"
+      }
+    ],
+    "memory_issues": [
+      {
+        "pattern": "\\[.*for.*in.*if.*\\].*\\[.*for.*in.*if.*\\]",
+        "issue": "Multiple list comprehensions creating temporary lists",
+        "suggestion": "Use generator expressions or itertools"
+      },
+      {
+        "pattern": "\\.read\\(\\)(?!.*close\\(\\))",
+        "issue": "File not properly closed - potential memory leak",
+        "suggestion": "Use context manager: with open(...) as f:"
+      },
+      {
+        "pattern": "global\\s+(?!.*del\\s)",
+        "issue": "Global variables may cause memory retention",
+        "suggestion": "Consider using classes or proper scope management"
+      }
+    ],
+    "database_antipatterns": [
+      {
+        "pattern": "for.*in.*:\\n.*\\.execute\\(",
+        "issue": "N+1 query problem",
+        "suggestion": "Use bulk operations or JOIN queries"
+      },
+      {
+        "pattern": "SELECT\\s+\\*\\s+FROM",
+        "issue": "Selecting all columns unnecessarily",
+        "suggestion": "Select only required columns"
+      },
+      {
+        "pattern": "\\.fetchall\\(\\).*\\[0\\]",
+        "issue": "Fetching all results when only first needed",
+        "suggestion": "Use fetchone() instead"
+      }
+    ],
+    "async_antipatterns": [
+      {
+        "pattern": "async def.*:\\n(?!.*await)",
+        "issue": "Async function without await",
+        "suggestion": "Remove async or add await statements"
+      },
+      {
+        "pattern": "for.*await.*:",
+        "issue": "Sequential async operations",
+        "suggestion": "Use asyncio.gather() for parallel execution"
+      }
+    ]
+  },
+  "complexity_thresholds": {
+    "cyclomatic_complexity": {
+      "warning": 10,
+      "error": 20,
+      "critical": 30
+    },
+    "function_length": {
+      "warning": 50,
+      "error": 100,
+      "critical": 200  
+    },
+    "parameter_count": {
+      "warning": 5,
+      "error": 8,
+      "critical": 12
+    },
+    "nesting_depth": {
+      "warning": 4,
+      "error": 6,
+      "critical": 8
+    }
+  },
+  "optimizations": {
+    "loop_optimization": {
+      "list_comprehension": "Convert simple for loops to list comprehensions",
+      "generator_expression": "Use generators for large datasets",
+      "vectorization": "Suggest numpy/pandas operations for numerical data"
+    },
+    "data_structure_optimization": {
+      "set_membership": "Use sets for O(1) membership testing",
+      "dict_lookup": "Use dictionaries instead of nested loops for lookups",
+      "deque_operations": "Use collections.deque for frequent append/pop operations"
+    },
+    "algorithm_suggestions": {
+      "sorting": "Suggest appropriate sorting algorithms based on data characteristics",
+      "searching": "Recommend binary search for sorted data",
+      "caching": "Identify opportunities for memoization"
+    }
+  },
+  "profiling_integration": {
+    "tools": ["cProfile", "line_profiler", "memory_profiler", "py-spy"],
+    "auto_profile": {
+      "enabled": true,
+      "threshold_functions": 5,
+      "memory_threshold_mb": 100
+    },
+    "benchmarking": {
+      "create_benchmarks": true,
+      "compare_implementations": true,
+      "track_regression": true
+    }
+  },
+  "reporting": {
+    "template": {
+      "title": "⚡ Performance Analysis Report",
+      "sections": [
+        "Performance Overview",
+        "Critical Bottlenecks",
+        "Optimization Opportunities",
+        "Complexity Analysis",
+        "Memory Usage Analysis",
+        "Recommendations",
+        "Benchmarking Results"
+      ]
+    },
+    "metrics": [
+      "execution_time",
+      "memory_usage",
+      "cpu_utilization",
+      "io_operations",
+      "database_queries"
+    ],
+    "visualizations": {
+      "flame_graphs": true,
+      "memory_timeline": true,
+      "complexity_heatmap": true
+    }
+  }
+}

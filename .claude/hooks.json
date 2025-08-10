@@ -1,0 +1,131 @@
+{
+  "hooks": {
+    "post-commit": {
+      "description": "Auto-generate documentation after commits",
+      "agents": [
+        {
+          "type": "documentation-specialist",
+          "task": "Analyze recent changes and update project documentation",
+          "conditions": {
+            "files_changed": ["*.py", "*.js", "*.ts", "*.md"],
+            "min_changes": 3
+          },
+          "actions": [
+            "update_readme",
+            "generate_changelog", 
+            "update_api_docs",
+            "check_code_comments"
+          ]
+        }
+      ]
+    },
+    "pre-push": {
+      "description": "Comprehensive code review before pushing to remote",
+      "agents": [
+        {
+          "type": "security-scanner", 
+          "task": "Scan for security vulnerabilities and secrets",
+          "conditions": {
+            "has_changes": true
+          },
+          "actions": [
+            "secret_detection",
+            "vulnerability_scan", 
+            "auto_remediation"
+          ]
+        },
+        {
+          "type": "performance-analyzer",
+          "task": "Analyze performance bottlenecks and complexity",
+          "conditions": {
+            "files_changed": ["*.py", "*.js", "*.ts"],
+            "has_changes": true
+          },
+          "actions": [
+            "complexity_analysis",
+            "performance_scan",
+            "optimization_suggestions"
+          ]
+        },
+        {
+          "type": "test-coverage-analyzer",
+          "task": "Verify test coverage and generate missing tests",
+          "conditions": {
+            "files_changed": ["*.py", "*.js", "*.ts"],
+            "has_changes": true
+          },
+          "actions": [
+            "coverage_analysis",
+            "test_gap_detection", 
+            "auto_test_generation"
+          ]
+        },
+        {
+          "type": "code-reviewer",
+          "task": "Overall code quality assessment and auto-fixes",
+          "conditions": {
+            "has_changes": true
+          },
+          "actions": [
+            "quality_assessment",
+            "auto_format",
+            "generate_comprehensive_report"
+          ]
+        }
+      ]
+    },
+    "pre-commit": {
+      "description": "Quick quality checks before committing",
+      "agents": [
+        {
+          "type": "security-scanner",
+          "task": "Quick security scan for secrets",
+          "conditions": {
+            "files_changed": ["*.py", "*.js", "*.ts", "*.env*", "*.config*"]
+          },
+          "actions": ["secret_detection", "auto_secret_removal"]
+        }
+      ]
+    },
+    "file-added": {
+      "description": "Documentation for new files",
+      "agents": [
+        {
+          "type": "documentation-specialist", 
+          "task": "Generate initial documentation for new files",
+          "conditions": {
+            "file_types": [".py", ".js", ".ts"],
+            "size_min": 50
+          },
+          "actions": [
+            "add_file_header",
+            "generate_function_docs",
+            "update_project_structure"
+          ]
+        }
+      ]
+    },
+    "weekly-sync": {
+      "description": "Weekly documentation maintenance",
+      "schedule": "0 9 * * MON",
+      "agents": [
+        {
+          "type": "documentation-specialist",
+          "task": "Comprehensive documentation review and updates", 
+          "actions": [
+            "audit_documentation_coverage",
+            "update_architecture_diagrams",
+            "generate_weekly_report",
+            "cleanup_outdated_docs"
+          ]
+        }
+      ]
+    }
+  },
+  "global_settings": {
+    "auto_commit_docs": true,
+    "notification_level": "summary",
+    "backup_before_changes": true,
+    "max_execution_time": 300
+  }
+}

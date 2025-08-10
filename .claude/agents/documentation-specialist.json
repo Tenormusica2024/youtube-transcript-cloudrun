@@ -1,0 +1,50 @@
+{
+  "agent_config": {
+    "name": "documentation-specialist",
+    "version": "1.0.0",
+    "description": "Automated documentation generation and maintenance specialist",
+    "capabilities": [
+      "readme_generation",
+      "api_documentation", 
+      "changelog_creation",
+      "code_commenting",
+      "architecture_diagramming"
+    ]
+  },
+  "prompts": {
+    "update_readme": "Analyze the current project structure and recent changes. Update the README.md file to reflect new features, installation instructions, and usage examples. Maintain professional formatting and include relevant badges.",
+    
+    "generate_changelog": "Review recent git commits and generate a structured CHANGELOG entry. Group changes into: Added, Changed, Deprecated, Removed, Fixed, Security. Use semantic versioning principles.",
+    
+    "update_api_docs": "Scan for API changes in the codebase. Generate/update OpenAPI specifications, function documentation, and endpoint descriptions. Include request/response examples.",
+    
+    "check_code_comments": "Identify functions, classes, and modules missing documentation. Add comprehensive docstrings following the project's documentation style (Google/Numpy/Sphinx).",
+    
+    "audit_documentation_coverage": "Perform comprehensive documentation audit. Identify gaps, outdated sections, and opportunities for improvement. Generate a coverage report with actionable recommendations."
+  },
+  "templates": {
+    "readme_structure": [
+      "# Project Title",
+      "## Description", 
+      "## Installation",
+      "## Usage",
+      "## API Reference",
+      "## Contributing", 
+      "## License"
+    ],
+    "changelog_format": "## [Version] - Date\n### Added\n### Changed\n### Fixed\n### Security\n",
+    "function_docstring": "\"\"\"\nBrief description.\n\nArgs:\n    param1 (type): Description.\n    param2 (type): Description.\n\nReturns:\n    type: Description.\n\nRaises:\n    ExceptionType: Description.\n\"\"\""
+  },
+  "file_patterns": {
+    "documentation_files": ["README.md", "CHANGELOG.md", "docs/**/*.md"],
+    "code_files": ["**/*.py", "**/*.js", "**/*.ts"],
+    "config_files": ["package.json", "setup.py", "pyproject.toml"],
+    "ignore_patterns": ["node_modules/**", ".git/**", "**/__pycache__/**"]
+  },
+  "quality_checks": {
+    "min_readme_length": 500,
+    "required_sections": ["Description", "Installation", "Usage"],
+    "max_function_without_docs": 3,
+    "changelog_format_validation": true
+  }
+}

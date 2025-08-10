@@ -1,0 +1,164 @@
+{
+  "agent_config": {
+    "name": "test-coverage-analyzer",
+    "version": "1.0.0",
+    "description": "Automated test coverage analysis and test generation specialist",
+    "capabilities": [
+      "coverage_analysis",
+      "test_gap_detection",
+      "unit_test_generation",
+      "integration_test_suggestions",
+      "mock_generation",
+      "edge_case_identification"
+    ]
+  },
+  "coverage_thresholds": {
+    "line_coverage": {
+      "minimum": 80,
+      "target": 90,
+      "excellent": 95
+    },
+    "branch_coverage": {
+      "minimum": 75,
+      "target": 85, 
+      "excellent": 90
+    },
+    "function_coverage": {
+      "minimum": 90,
+      "target": 95,
+      "excellent": 100
+    }
+  },
+  "test_patterns": {
+    "missing_test_indicators": [
+      {
+        "pattern": "def\\s+(\\w+)\\s*\\([^)]*\\):\\s*$",
+        "type": "function_without_test",
+        "generate_test": true
+      },
+      {
+        "pattern": "class\\s+(\\w+)(?:\\([^)]*\\))?:\\s*$",
+        "type": "class_without_test",
+        "generate_test": true
+      },
+      {
+        "pattern": "if\\s+.*:\\s*$.*else:\\s*$",
+        "type": "conditional_branch",
+        "test_both_branches": true
+      },
+      {
+        "pattern": "try:\\s*$.*except\\s+.*:\\s*$",
+        "type": "exception_handling",
+        "test_exception_path": true
+      }
+    ],
+    "edge_cases": [
+      {
+        "type": "boundary_values",
+        "patterns": ["range\\(", "len\\(", "\\[.*\\]", "max\\(", "min\\("]
+      },
+      {
+        "type": "null_empty_values", 
+        "patterns": ["if.*:", "\\w+\\s*==\\s*None", "\\w+\\s*==\\s*''"]
+      },
+      {
+        "type": "type_validation",
+        "patterns": ["isinstance\\(", "type\\(", "hasattr\\("]
+      }
+    ]
+  },
+  "test_generators": {
+    "unit_test_template": {
+      "python": "import unittest\nfrom unittest.mock import Mock, patch\nfrom {{module}} import {{class_or_function}}\n\nclass Test{{ClassName}}(unittest.TestCase):\n    def setUp(self):\n        pass\n    \n    def test_{{method_name}}_success(self):\n        # Test successful execution\n        pass\n    \n    def test_{{method_name}}_edge_cases(self):\n        # Test boundary conditions\n        pass\n    \n    def test_{{method_name}}_error_handling(self):\n        # Test error conditions\n        pass",
+      "javascript": "import { describe, it, expect, beforeEach } from 'vitest';\nimport { {{functionName}} } from '../{{module}}';\n\ndescribe('{{functionName}}', () => {\n  beforeEach(() => {\n    // Setup\n  });\n  \n  it('should handle successful case', () => {\n    // Test implementation\n  });\n  \n  it('should handle edge cases', () => {\n    // Test edge cases\n  });\n  \n  it('should handle errors appropriately', () => {\n    // Test error conditions\n  });\n});",
+      "typescript": "import { describe, it, expect, beforeEach } from '@jest/globals';\nimport { {{functionName}} } from '../{{module}}';\n\ndescribe('{{functionName}}', () => {\n  beforeEach(() => {\n    // Setup\n  });\n  \n  it('should handle successful case', () => {\n    // Test implementation\n  });\n  \n  it('should handle edge cases', () => {\n    // Test edge cases\n  });\n  \n  it('should handle errors appropriately', () => {\n    // Test error conditions\n  });\n});"
+    },
+    "mock_suggestions": {
+      "database_calls": "Mock database connections and queries",
+      "api_calls": "Mock HTTP requests and external API calls",
+      "file_operations": "Mock file I/O operations",
+      "datetime": "Mock current time for consistent testing",
+      "random_values": "Mock random number generation"
+    }
+  },
+  "analysis_tools": {
+    "python": {
+      "coverage_tool": "coverage.py",
+      "commands": [
+        "coverage run -m pytest",
+        "coverage report", 
+        "coverage html"
+      ]
+    },
+    "javascript": {
+      "coverage_tool": "nyc",
+      "commands": [
+        "nyc npm test",
+        "nyc report --reporter=html"
+      ]
+    },
+    "typescript": {
+      "coverage_tool": "jest",
+      "commands": [
+        "jest --coverage",
+        "jest --coverage --collectCoverageFrom='src/**/*.ts'"
+      ]
+    }
+  },
+  "quality_gates": {
+    "block_merge_conditions": {
+      "line_coverage_below": 70,
+      "new_code_coverage_below": 80,
+      "critical_functions_untested": 1
+    },
+    "warning_conditions": {
+      "line_coverage_below": 85,
+      "branch_coverage_below": 80,
+      "test_to_code_ratio_below": 0.5
+    }
+  },
+  "auto_actions": {
+    "generate_tests": {
+      "enabled": true,
+      "max_tests_per_run": 10,
+      "focus_on": ["new_functions", "uncovered_branches", "critical_paths"]
+    },
+    "update_existing_tests": {
+      "enabled": true,
+      "add_missing_assertions": true,
+      "improve_test_names": true,
+      "add_edge_cases": true
+    },
+    "test_maintenance": {
+      "remove_obsolete_tests": true,
+      "update_deprecated_syntax": true,
+      "optimize_slow_tests": true
+    }
+  },
+  "reporting": {
+    "template": {
+      "title": "🧪 Test Coverage Analysis Report",
+      "sections": [
+        "Coverage Overview",
+        "Uncovered Code Analysis",
+        "Generated Tests",
+        "Test Quality Assessment",
+        "Recommendations",
+        "Coverage Trends"
+      ]
+    },
+    "metrics": [
+      "line_coverage_percentage",
+      "branch_coverage_percentage", 
+      "function_coverage_percentage",
+      "test_execution_time",
+      "test_success_rate",
+      "flaky_test_detection"
+    ],
+    "visualizations": {
+      "coverage_heatmap": true,
+      "trend_graphs": true,
+      "test_pyramid": true
+    }
+  }
+}

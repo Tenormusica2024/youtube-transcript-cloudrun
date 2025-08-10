@@ -1,0 +1,112 @@
+{
+  "agent_config": {
+    "name": "security-scanner",
+    "version": "1.0.0", 
+    "description": "Automated security vulnerability detection and remediation specialist",
+    "capabilities": [
+      "secret_detection",
+      "sql_injection_scan",
+      "xss_vulnerability_check",
+      "dependency_vulnerability_scan",
+      "crypto_analysis",
+      "auth_bypass_detection"
+    ]
+  },
+  "security_patterns": {
+    "secrets": {
+      "api_keys": [
+        "(?i)(api[_-]?key|apikey)\\s*[=:]\\s*['\"]?[a-z0-9]{20,}['\"]?",
+        "(?i)(secret[_-]?key|secretkey)\\s*[=:]\\s*['\"]?[a-z0-9]{20,}['\"]?",
+        "(?i)(access[_-]?token|accesstoken)\\s*[=:]\\s*['\"]?[a-z0-9]{20,}['\"]?"
+      ],
+      "passwords": [
+        "(?i)(password|passwd|pwd)\\s*[=:]\\s*['\"][^'\"]{8,}['\"]",
+        "(?i)(db[_-]?pass|dbpass)\\s*[=:]\\s*['\"][^'\"]{4,}['\"]"
+      ],
+      "cloud_credentials": [
+        "AKIA[0-9A-Z]{16}",
+        "(?i)aws[_-]?access[_-]?key[_-]?id\\s*[=:]\\s*['\"]?AKIA[0-9A-Z]{16}['\"]?",
+        "(?i)google[_-]?api[_-]?key\\s*[=:]\\s*['\"]?[a-zA-Z0-9-_]{39}['\"]?"
+      ]
+    },
+    "injections": {
+      "sql_injection": [
+        "(?i)(select|insert|update|delete|drop|create).*\\+.*['\"]",
+        "(?i)execute\\s*\\(.*\\+.*\\)",
+        "(?i)\\.format\\s*\\(.*sql.*\\)"
+      ],
+      "command_injection": [
+        "(?i)(system|exec|eval|subprocess)\\s*\\(.*\\+.*user.*\\)",
+        "(?i)os\\.(system|popen|execv?)\\s*\\(.*input.*\\)",
+        "(?i)shell=True.*user.*input"
+      ],
+      "xss_risks": [
+        "(?i)innerHTML\\s*=.*user",
+        "(?i)document\\.write\\s*\\(.*input",
+        "(?i)eval\\s*\\(.*request\\."
+      ]
+    },
+    "crypto_issues": {
+      "weak_crypto": [
+        "(?i)(md5|sha1)\\s*\\(",
+        "(?i)des[^c].*encrypt",
+        "(?i)random\\.random\\(\\).*password"
+      ],
+      "hardcoded_crypto": [
+        "(?i)(encrypt|decrypt|cipher).*['\"][a-f0-9]{32,}['\"]",
+        "(?i)(iv|salt)\\s*=\\s*['\"][a-f0-9]{16,}['\"]"
+      ]
+    }
+  },
+  "auto_fixes": {
+    "secret_removal": {
+      "action": "replace_with_env_var",
+      "template": "os.getenv('{{VAR_NAME}}')",
+      "create_env_example": true
+    },
+    "sql_parameterization": {
+      "action": "convert_to_prepared_statement",
+      "warning": "Manual review required for complex queries"
+    },
+    "crypto_upgrade": {
+      "md5_replacement": "hashlib.sha256",
+      "sha1_replacement": "hashlib.sha256",
+      "des_replacement": "AES.new(..., AES.MODE_GCM)"
+    }
+  },
+  "severity_levels": {
+    "critical": {
+      "block_commit": true,
+      "patterns": ["hardcoded_api_keys", "sql_injection", "command_injection"]
+    },
+    "high": {
+      "block_commit": false,
+      "require_approval": true,
+      "patterns": ["weak_crypto", "xss_risks", "auth_bypass"]
+    },
+    "medium": {
+      "auto_fix": true,
+      "patterns": ["missing_input_validation", "insecure_defaults"]
+    },
+    "low": {
+      "warning_only": true,
+      "patterns": ["code_style_security", "minor_improvements"]
+    }
+  },
+  "reporting": {
+    "template": {
+      "title": "🔒 Security Scan Report",
+      "sections": [
+        "Executive Summary",
+        "Critical Issues",
+        "High Priority Issues", 
+        "Auto-Fixed Items",
+        "Recommendations",
+        "Compliance Status"
+      ]
+    },
+    "output_formats": ["markdown", "json", "sarif"],
+    "include_remediation": true,
+    "cwe_mapping": true
+  }
+}
