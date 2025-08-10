@@ -14,7 +14,7 @@ steps:
     args:
       - 'run'
       - 'deploy'
-      - 'youtube-transcript'
+      - 'yt-transcript'
       - '--image'
       - 'gcr.io/$PROJECT_ID/youtube-transcript-app:$BUILD_ID'
       - '--region'

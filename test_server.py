@@ -5,34 +5,37 @@ YouTube Transcript Webapp - テストサーバー
 
 import os
 import sys
-import time
 import threading
-import requests
+import time
 from pathlib import Path
+
+import requests
 
 # パスを追加
 sys.path.insert(0, str(Path(__file__).parent))
+
 
 def start_server():
     """サーバーを起動"""
     # app_cloud_run.pyをappとして実行
     import app_cloud_run as app
-    
+
     # テスト用のYouTube API キー（環境変数を模擬）
-    os.environ['YOUTUBE_API_KEY'] = 'test_api_key_for_testing'
-    os.environ['PORT'] = '8081'
-    
+    os.environ["YOUTUBE_API_KEY"] = "test_api_key_for_testing"
+    os.environ["PORT"] = "8081"
+
     print("Starting test server...")
-    app.app.run(host='127.0.0.1', port=8081, debug=False)
+    app.app.run(host="127.0.0.1", port=8081, debug=False)
+
 
 def test_endpoints():
     """エンドポイントをテスト"""
     base_url = "http://127.0.0.1:8081"
-    
+
     # サーバー起動を待つ
     print("Waiting for server to start...")
     time.sleep(3)
-    
+
     max_retries = 10
     for i in range(max_retries):
         try:
@@ -46,11 +49,11 @@ def test_endpoints():
             else:
                 print("[ERROR] Failed to start server")
                 return False
-    
+
     # テスト実行
     print("\n[TEST] Starting tests...")
     print("-" * 50)
-    
+
     # 1. ヘルスチェック
     print("\n1. Health check endpoint (/health)")
     try:
@@ -58,38 +61,38 @@ def test_endpoints():
         print(f"   ステータスコード: {response.status_code}")
         print(f"   レスポンス: {response.json()}")
         assert response.status_code == 200
-        assert 'status' in response.json()
+        assert "status" in response.json()
         print("   [OK] Success")
     except Exception as e:
         print(f"   [ERROR] Failed: {e}")
-    
+
     # 2. メインページ
     print("\n2. Main page (/)")
     try:
         response = requests.get(f"{base_url}/")
         print(f"   ステータスコード: {response.status_code}")
         assert response.status_code == 200
-        assert 'html' in response.text.lower()
+        assert "html" in response.text.lower()
         print("   [OK] Success")
     except Exception as e:
         print(f"   [ERROR] Failed: {e}")
-    
+
     # 3. 字幕抽出（エラーケース）
     print("\n3. Extract endpoint - error case (/extract)")
     try:
         response = requests.post(
             f"{base_url}/extract",
             json={"url": "invalid_url"},
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
         print(f"   ステータスコード: {response.status_code}")
         print(f"   レスポンス: {response.json()}")
         assert response.status_code == 400
-        assert 'error' in response.json()
+        assert "error" in response.json()
         print("   [OK] Proper error handling")
     except Exception as e:
         print(f"   [ERROR] Failed: {e}")
-    
+
     # 4. 404エラー
     print("\n4. 404 error handling")
     try:
@@ -99,31 +102,32 @@ def test_endpoints():
         print("   [OK] Success")
     except Exception as e:
         print(f"   [ERROR] Failed: {e}")
-    
+
     print("\n" + "=" * 50)
     print("[COMPLETE] All tests finished!")
     print("=" * 50)
-    
+
     return True
+
 
 if __name__ == "__main__":
     print("=" * 50)
     print("YouTube Transcript Webapp - テスト実行")
     print("=" * 50)
-    
+
     # サーバーを別スレッドで起動
     server_thread = threading.Thread(target=start_server, daemon=True)
     server_thread.start()
-    
+
     # テスト実行
     success = test_endpoints()
-    
+
     if success:
         print("\n[SUCCESS] All tests passed!")
         print("サーバーはポート8081で稼働中です。")
         print("ブラウザで http://localhost:8081 にアクセスしてください。")
         print("終了するには Ctrl+C を押してください。")
-        
+
         try:
             # サーバーを継続実行
             while True:
