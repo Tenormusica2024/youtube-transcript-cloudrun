@@ -785,8 +785,8 @@ options:
 
 ### .env (Environment Variables - Template)
 ```
-YOUTUBE_API_KEY=AIzaSyBC8mkp2FgNXRaFLerpgjMaLG4ri4-X25A
-GEMINI_API_KEY=AIzaSyBKVL0MW3hbTFX7llfbuF0TL73SKNR2Rfw
+YOUTUBE_API_KEY=[REDACTED_FOR_SECURITY]
+GEMINI_API_KEY=[REDACTED_FOR_SECURITY]
 ```
 
 ## Deployment Configuration
@@ -802,8 +802,8 @@ GEMINI_API_KEY=AIzaSyBKVL0MW3hbTFX7llfbuF0TL73SKNR2Rfw
 - Cloud Run deployment to asia-northeast1 region
 
 ### API Keys Used
-- YouTube Data API v3: AIzaSyBC8mkp2FgNXRaFLerpgjMaLG4ri4-X25A
-- Google Gemini API: AIzaSyBKVL0MW3hbTFX7llfbuF0TL73SKNR2Rfw
+- YouTube Data API v3: [REDACTED_FOR_SECURITY]
+- Google Gemini API: [REDACTED_FOR_SECURITY]
 
 ## Technical Fixes Applied
 

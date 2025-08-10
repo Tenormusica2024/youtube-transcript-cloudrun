@@ -7,8 +7,8 @@
 - Status: ✅ Code pushed successfully
 
 ### API Keys
-- **YouTube Data API v3**: `AIzaSyBC8mkp2FgNXRaFLerpgjMaLG4ri4-X25A`
-- **Google Gemini API**: `AIzaSyBKVL0MW3hbTFX7llfbuF0TL73SKNR2Rfw`
+- **YouTube Data API v3**: `[REDACTED_FOR_SECURITY]`
+- **Google Gemini API**: `[REDACTED_FOR_SECURITY]`
 
 ## Cloud Build Setup
 
@@ -34,8 +34,8 @@
 ### 3. Environment Variables (Substitution Variables)
 Add these substitution variables in the trigger:
 ```
-_YOUTUBE_API_KEY = AIzaSyBC8mkp2FgNXRaFLerpgjMaLG4ri4-X25A
-_GEMINI_API_KEY = AIzaSyBKVL0MW3hbTFX7llfbuF0TL73SKNR2Rfw
+_YOUTUBE_API_KEY = [REDACTED_FOR_SECURITY]
+_GEMINI_API_KEY = [REDACTED_FOR_SECURITY]
 ```
 
 ## Cloud Run Setup
@@ -51,8 +51,8 @@ Navigate to: Cloud Run > youtube-transcript service > Edit & Deploy New Revision
 
 **Variables & Secrets Tab:**
 ```
-YOUTUBE_API_KEY = AIzaSyBC8mkp2FgNXRaFLerpgjMaLG4ri4-X25A
-GEMINI_API_KEY = AIzaSyBKVL0MW3hbTFX7llfbuF0TL73SKNR2Rfw
+YOUTUBE_API_KEY = [REDACTED_FOR_SECURITY]
+GEMINI_API_KEY = [REDACTED_FOR_SECURITY]
 ```
 
 ### 3. Container Settings

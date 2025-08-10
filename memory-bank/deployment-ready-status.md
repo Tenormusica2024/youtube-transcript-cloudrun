@@ -18,8 +18,8 @@
 - [x] **エラーハンドリング**: 適切なフォールバック処理
 
 ### APIキー設定
-- [x] **YouTube API Key**: AIzaSyBC8mkp2FgNXRaFLerpgjMaLG4ri4-X25A
-- [x] **Gemini API Key**: AIzaSyBKVL0MW3hbTFX7llfbuF0TL73SKNR2Rfw
+- [x] **YouTube API Key**: [REDACTED_FOR_SECURITY]
+- [x] **Gemini API Key**: [REDACTED_FOR_SECURITY]
 - [x] **環境変数**: .envファイル設定完了
 - [x] **Cloud Build**: 環境変数渡し設定完了
 

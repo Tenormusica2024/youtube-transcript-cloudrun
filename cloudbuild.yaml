@@ -31,7 +31,7 @@ steps:
       - '--max-instances'
       - '10'
       - '--set-env-vars'
-      - 'YOUTUBE_API_KEY=AIzaSyBC8mkp2FgNXRaFLerpgjMaLG4ri4-X25A,GEMINI_API_KEY=AIzaSyBKVL0MW3hbTFX7llfbuF0TL73SKNR2Rfw'
+      - 'YOUTUBE_API_KEY=[REDACTED_FOR_SECURITY],GEMINI_API_KEY=[REDACTED_FOR_SECURITY]'
 
 # Store images in Google Container Registry
 images:

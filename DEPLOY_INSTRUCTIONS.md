@@ -1,7 +1,7 @@
 # YouTube Transcript App - Cloud Run デプロイ手順書
 
 ## 🚀 準備完了状況
-- ✅ APIキー取得済み: `AIzaSyAHkhiqjoRBRWx_HMlP7V_HeyzCc4Yn7rw`
+- ✅ APIキー取得済み: `"PLEASE_SET_YOUR_API_KEY"`
 - ✅ ローカルテスト完了: Webインターフェース正常動作
 - ✅ YouTube API設定完了: ヘルスチェック正常
 - ✅ Dockerイメージビルド完了
@@ -68,7 +68,7 @@
      --platform managed \
      --region asia-northeast1 \
      --allow-unauthenticated \
-     --set-env-vars YOUTUBE_API_KEY=AIzaSyAHkhiqjoRBRWx_HMlP7V_HeyzCc4Yn7rw \
+     --set-env-vars YOUTUBE_API_KEY="PLEASE_SET_YOUR_API_KEY" \
      --port 8080 \
      --memory 512Mi \
      --timeout 300
@@ -96,7 +96,7 @@
      --platform managed \
      --region asia-northeast1 \
      --allow-unauthenticated \
-     --set-env-vars YOUTUBE_API_KEY=AIzaSyAHkhiqjoRBRWx_HMlP7V_HeyzCc4Yn7rw
+     --set-env-vars YOUTUBE_API_KEY="PLEASE_SET_YOUR_API_KEY"
    ```
 
 ## ✅ デプロイ成功後の確認

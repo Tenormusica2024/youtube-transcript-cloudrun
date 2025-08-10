@@ -562,7 +562,7 @@ gcloud run deploy youtube-transcript \
   --platform managed \
   --region asia-northeast1 \
   --allow-unauthenticated \
-  --set-env-vars YOUTUBE_API_KEY=AIzaSyAHkhiqjoRBRWx_HMlP7V_HeyzCc4Yn7rw \
+  --set-env-vars YOUTUBE_API_KEY="PLEASE_SET_YOUR_API_KEY" \
   --port 8080 \
   --memory 512Mi \
   --timeout 300
