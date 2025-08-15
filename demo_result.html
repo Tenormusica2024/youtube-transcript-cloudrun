@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>YouTube AI要約 - 結果表示デモ</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+            background-size: cover;
+            min-height: 100vh;
+        }
+        
+        /* YouTubeページの模擬背景 */
+        .youtube-mock {
+            background: #0f0f0f;
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+        
+        .video-area {
+            max-width: 1280px;
+            margin: 0 auto;
+            background: #000;
+            aspect-ratio: 16/9;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            opacity: 0.3;
+        }
+        
+        /* AI要約ボタン（右上固定） */
+        #ytSummarizeBtn {
+            position: fixed;
+            right: 20px;
+            top: 20px;
+            z-index: 999999;
+            padding: 15px 20px;
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            border: 3px solid white;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+            min-width: 120px;
+            text-align: center;
+        }
+        
+        #ytSummarizeBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        
+        /* 結果表示モーダル */
+        .yt-summary-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 999999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s;
+        }
+        
+        .yt-summary-modal.show {
+            display: flex;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .yt-summary-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .yt-summary-close {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .yt-summary-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #333;
+        }
+        
+        .yt-summary-meta {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .yt-summary-text {
+            line-height: 1.8;
+            color: #333;
+            white-space: pre-wrap;
+        }
+        
+        .yt-summary-text h1 {
+            font-size: 18px;
+            color: #2c3e50;
+            margin: 20px 0 10px;
+        }
+        
+        .yt-summary-text h2 {
+            font-size: 16px;
+            color: #34495e;
+            margin: 15px 0 10px;
+        }
+        
+        .yt-summary-text ul {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+        
+        .yt-summary-text li {
+            margin: 5px 0;
+        }
+        
+        .yt-summary-actions {
+            margin-top: 20px;
+            text-align: center;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .yt-summary-btn {
+            background: #4ECDC4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        
+        .yt-summary-btn:hover {
+            background: #45B7AF;
+        }
+        
+        .yt-summary-btn.close {
+            background: #95a5a6;
+        }
+        
+        .yt-summary-btn.close:hover {
+            background: #7f8c8d;
+        }
+        
+        /* デモ用説明 */
+        .demo-info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #fff;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 300px;
+        }
+        
+        /* ボタンが見えるように注意表示 */
+        .button-arrow {
+            position: fixed;
+            top: 100px;
+            right: 150px;
+            z-index: 1000;
+            background: #ffeb3b;
+            color: #333;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-info">
+        📺 これはYouTubeページでの表示イメージです<br>
+        右上の「🤖 AI要約」ボタンをクリックしてください！
+    </div>
+    
+    <div class="button-arrow">
+        右上のボタン → 
+    </div>
+    
+    <!-- YouTube模擬背景 -->
+    <div class="youtube-mock">
+        <div class="video-area">
+            🎬 動画プレーヤー
+        </div>
+        <div style="margin-top: 20px; opacity: 0.7;">
+            <h2>サンプル動画タイトル</h2>
+            <p>サンプルチャンネル • 10万回視聴 • 2日前</p>
+        </div>
+    </div>
+    
+    <!-- AI要約ボタン（右上固定） -->
+    <button id="ytSummarizeBtn" onclick="showResult()">🤖 AI要約</button>
+    
+    <!-- 結果表示モーダル -->
+    <div class="yt-summary-modal" id="resultModal">
+        <div class="yt-summary-content">
+            <button class="yt-summary-close" onclick="closeModal()">×</button>
+            <div class="yt-summary-title">🤖 AI要約結果</div>
+            
+            <div class="yt-summary-meta">
+                <strong>動画:</strong> AIと機械学習の基礎<br>
+                <strong>チャンネル:</strong> Tech Education<br>
+                <strong>字幕言語:</strong> 日本語<br>
+                <strong>文字数:</strong> 1,234文字<br>
+                <strong>処理時間:</strong> 3.5秒
+            </div>
+            
+            <div class="yt-summary-text">
+# AIと機械学習の基礎知識
+
+## 主要ポイント
+• AIは人間の知能を模倣するコンピューターシステム
+• 機械学習はデータから学習するアルゴリズムを使用
+• 深層学習はニューラルネットワークを活用した発展形
+• 画像認識、自然言語処理、自動運転などに応用
+
+## 技術の詳細
+機械学習には教師あり学習、教師なし学習、強化学習の3つの主要な手法があります。それぞれ異なる問題解決に適しています。
+
+## 結論
+AIと機械学習は急速に発展しており、今後さらに私たちの生活に浸透していくことが期待されています。基本概念を理解することが、この技術革新の時代を生きる上で重要です。
+            </div>
+            
+            <div class="yt-summary-actions">
+                <button class="yt-summary-btn" onclick="copyToClipboard()">📋 コピー</button>
+                <button class="yt-summary-btn close" onclick="closeModal()">閉じる</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showResult() {
+            // ボタンを処理中に変更
+            const btn = document.getElementById('ytSummarizeBtn');
+            btn.textContent = '🔄 処理中...';
+            btn.disabled = true;
+            
+            // 3秒後に結果を表示（実際は処理完了時）
+            setTimeout(() => {
+                document.getElementById('resultModal').classList.add('show');
+                btn.textContent = '🤖 AI要約';
+                btn.disabled = false;
+            }, 2000);
+        }
+        
+        function closeModal() {
+            document.getElementById('resultModal').classList.remove('show');
+        }
+        
+        function copyToClipboard() {
+            const text = document.querySelector('.yt-summary-text').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('要約をクリップボードにコピーしました！');
+            });
+        }
+        
+        // モーダル外クリックで閉じる
+        document.getElementById('resultModal').addEventListener('click', (e) => {
+            if (e.target.id === 'resultModal') {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

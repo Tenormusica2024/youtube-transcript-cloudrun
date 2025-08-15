@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube AI要約 - テストページ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result.show {
+            display: block;
+        }
+        
+        .result h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .summary-content {
+            color: #555;
+            line-height: 1.8;
+            white-space: pre-wrap;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .error.show {
+            display: block;
+        }
+        
+        .info {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 YouTube AI要約テスト</h1>
+        <p class="subtitle">YouTube動画の字幕をAIで要約します</p>
+        
+        <div class="info">
+            💡 このページは手動テスト用です。実際はYouTubeページに「AI要約」ボタンが自動追加されます。
+        </div>
+        
+        <div class="input-group">
+            <label for="url">YouTube URL（例: https://www.youtube.com/watch?v=...）</label>
+            <input type="text" id="url" placeholder="YouTubeのURLを入力" value="https://www.youtube.com/watch?v=test">
+        </div>
+        
+        <div class="input-group">
+            <label for="transcript">テスト用字幕テキスト</label>
+            <textarea id="transcript" placeholder="字幕テキストを入力（通常は自動取得されます）">
+このビデオでは、人工知能（AI）の基本概念について説明します。
+AIは、人間の知能を模倣するコンピューターシステムです。
+機械学習は、AIの重要な分野の一つで、データから学習するアルゴリズムを使用します。
+深層学習は、機械学習の発展形で、ニューラルネットワークを使用します。
+これらの技術は、画像認識、自然言語処理、自動運転など、様々な分野で応用されています。
+将来的には、AIはより高度になり、私たちの生活をさらに便利にすることが期待されています。</textarea>
+        </div>
+        
+        <button onclick="summarize()">要約を生成</button>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>AI要約を生成中...</p>
+        </div>
+        
+        <div class="error" id="error"></div>
+        
+        <div class="result" id="result">
+            <h2>📝 AI要約結果</h2>
+            <div class="summary-content" id="summaryContent"></div>
+        </div>
+    </div>
+    
+    <script>
+        const API_ENDPOINT = 'https://yt-transcript-hybrid-2yy4vkcmia-uc.a.run.app/summarize';
+        const API_TOKEN = 'hybrid-yt-token-2024';
+        
+        async function summarize() {
+            const url = document.getElementById('url').value;
+            const transcript = document.getElementById('transcript').value;
+            
+            if (!url || !transcript) {
+                showError('URLと字幕テキストを入力してください');
+                return;
+            }
+            
+            // UI更新
+            document.querySelector('button').disabled = true;
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('error').classList.remove('show');
+            document.getElementById('result').classList.remove('show');
+            
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_TOKEN}`
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        title: 'テスト動画',
+                        channel: 'テストチャンネル',
+                        transcript: transcript,
+                        lang: 'ja',
+                        target_lang: 'ja',
+                        max_words: 300
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`サーバーエラー: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // 結果表示
+                document.getElementById('summaryContent').textContent = data.summary;
+                document.getElementById('result').classList.add('show');
+                
+            } catch (error) {
+                showError(`エラーが発生しました: ${error.message}`);
+            } finally {
+                document.querySelector('button').disabled = false;
+                document.getElementById('loading').classList.remove('show');
+            }
+        }
+        
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = message;
+            errorEl.classList.add('show');
+        }
+    </script>
+</body>
+</html>

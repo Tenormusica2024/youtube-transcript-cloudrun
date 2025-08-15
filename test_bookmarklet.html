@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>YouTube字幕抽出ブックマークレット - テスト</title>
+</head>
+<body>
+    <h1>🔖 YouTube字幕抽出ブックマークレット</h1>
+    
+    <h2>使用方法</h2>
+    <ol>
+        <li>下のリンクをブラウザのブックマークバーにドラッグ＆ドロップ</li>
+        <li>YouTubeで字幕のある動画を開く</li>
+        <li>動画下の「文字起こしを表示」ボタンをクリック</li>
+        <li>ブックマークレットを実行</li>
+    </ol>
+    
+    <h2>ブックマークレット</h2>
+    <p>下記をブックマークに追加してください：</p>
+    <a href="javascript:(async()=>{try{const RUN_URL='https://yt-transcript-2yy4vkcmia-uc.a.run.app';const panel=document.querySelector('ytd-transcript-renderer');if(!panel){alert('文字起こしパネルが見つかりません。先に「文字起こしを表示」を開いてください。');return;}const texts=[...panel.querySelectorAll('.ytd-transcript-segment-renderer .segment-text,[class*=\"segment\"] [class*=\"text\"]')].map(e=>e.textContent.trim()).filter(Boolean);if(!texts.length){alert('字幕テキストが見つかりませんでした。');return;}const transcript=texts.join('\n');console.log('抽出したテキスト:',transcript);const res=await fetch(RUN_URL+'/extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({transcript_text:transcript,format:'txt',lang:'ja'})});const json=await res.json();console.log('[要約結果]',json);if(res.ok){alert('✅ 要約完了！結果をコンソールで確認してください。\n\n要約:\n'+json.summary.substring(0,200)+'...');}else{alert('❌ エラー: '+JSON.stringify(json));}}catch(e){alert('実行エラー: '+e.message)}})();">YT字幕→要約</a>
+    
+    <h2>手動テスト用コード</h2>
+    <textarea style="width:100%;height:200px;">
+javascript:(async()=>{
+  try{
+    const RUN_URL='https://yt-transcript-2yy4vkcmia-uc.a.run.app';
+    const panel=document.querySelector('ytd-transcript-renderer');
+    if(!panel){
+      alert('文字起こしパネルが見つかりません。先に「文字起こしを表示」を開いてください。');
+      return;
+    }
+    const texts=[...panel.querySelectorAll('.ytd-transcript-segment-renderer .segment-text,[class*="segment"] [class*="text"]')]
+      .map(e=>e.textContent.trim()).filter(Boolean);
+    if(!texts.length){
+      alert('字幕テキストが見つかりませんでした。');
+      return;
+    }
+    const transcript=texts.join('\n');
+    console.log('抽出したテキスト:',transcript);
+    const res=await fetch(RUN_URL+'/extract',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({transcript_text:transcript,format:'txt',lang:'ja'})
+    });
+    const json=await res.json();
+    console.log('[要約結果]',json);
+    if(res.ok){
+      alert('✅ 要約完了！結果をコンソールで確認してください。\n\n要約:\n'+json.summary.substring(0,200)+'...');
+    }else{
+      alert('❌ エラー: '+JSON.stringify(json));
+    }
+  }catch(e){
+    alert('実行エラー: '+e.message);
+  }
+})();
+    </textarea>
+    
+    <h2>テスト手順</h2>
+    <ol>
+        <li>上のリンクをブックマークに追加</li>
+        <li>YouTube動画（字幕あり）を開く：例 https://www.youtube.com/watch?v=dQw4w9WgXcQ</li>
+        <li>動画下の「⋯」→「文字起こしを表示」をクリック</li>
+        <li>ブックマークレットを実行</li>
+        <li>コンソール（F12）で結果確認</li>
+    </ol>
+</body>
+</html>

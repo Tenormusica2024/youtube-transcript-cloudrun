@@ -1,0 +1,10 @@
+*.md
+memory-bank/
+test_*
+.git/
+__pycache__/
+*.pyc
+.env
+.claude/
+deploy.sh
+docker-compose.yml
