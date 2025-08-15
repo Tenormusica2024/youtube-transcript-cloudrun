@@ -29,6 +29,37 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# 環境変数検証を統合
+def validate_environment_on_startup():
+    """起動時環境変数検証"""
+    try:
+        import importlib.util
+        env_validator_path = os.path.join(os.path.dirname(__file__), "env_validator.py")
+        
+        if os.path.exists(env_validator_path):
+            spec = importlib.util.spec_from_file_location("env_validator", env_validator_path)
+            env_validator = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(env_validator)
+            
+            validator = env_validator.EnvValidator()
+            is_valid = validator.validate_all()
+            
+            if not is_valid:
+                logger.warning("⚠️  環境変数に問題が検出されました - 自動修正を試行中...")
+                validator.auto_fix_env_file()
+                
+                # 修正後の再検証
+                validator_recheck = env_validator.EnvValidator()
+                validator_recheck.validate_all()
+                logger.info("✅ 環境変数修正完了 - サービス開始")
+            else:
+                logger.info("✅ 全ての環境変数が正常に設定されています")
+        else:
+            logger.warning("env_validator.py not found - skipping validation")
+            
+    except Exception as e:
+        logger.warning(f"Environment validation failed: {e}")
+
 # Flask アプリケーション設定
 app = Flask(__name__, template_folder="templates", static_folder="static")
 
@@ -100,7 +131,7 @@ def require_auth(f):
     def decorated_function(*args, **kwargs):
         auth_header = request.headers.get("Authorization")
         logger.info(f"Received auth header: {repr(auth_header)}")
-        
+
         if not auth_header:
             logger.warning("No authorization header provided")
             return jsonify({"error": "Authorization header required"}), 401
@@ -108,23 +139,29 @@ def require_auth(f):
         try:
             parts = auth_header.split(" ", 1)
             logger.info(f"Auth header split into {len(parts)} parts: {parts}")
-            
+
             if len(parts) != 2:
-                logger.warning(f"Invalid authorization header format: expected 2 parts, got {len(parts)}")
+                logger.warning(
+                    f"Invalid authorization header format: expected 2 parts, got {len(parts)}"
+                )
                 return jsonify({"error": "Invalid Authorization header format"}), 401
-                
+
             scheme, token = parts
             logger.info(f"Scheme: {repr(scheme)}, Token: {repr(token[:10])}...")
-            
+
             if scheme.lower() != "bearer":
                 logger.warning(f"Invalid scheme: expected 'bearer', got {repr(scheme)}")
                 return jsonify({"error": "Bearer token required"}), 401
 
             expected_token = get_transcript_api_token()
-            logger.info(f"Expected token: {repr(expected_token[:10] if expected_token else None)}...")
-            
+            logger.info(
+                f"Expected token: {repr(expected_token[:10] if expected_token else None)}..."
+            )
+
             if token != expected_token:
-                logger.warning(f"Token mismatch: got {repr(token[:10])}..., expected {repr(expected_token[:10] if expected_token else None)}...")
+                logger.warning(
+                    f"Token mismatch: got {repr(token[:10])}..., expected {repr(expected_token[:10] if expected_token else None)}..."
+                )
                 return jsonify({"error": "Invalid token"}), 401
 
             logger.info("Authorization successful")
@@ -506,14 +543,42 @@ def index():
 @app.route("/health")
 def health():
     """ヘルスチェックエンドポイント（Cloud Run用）"""
-    return jsonify(
-        {
-            "status": "healthy",
-            "timestamp": datetime.now().isoformat(),
-            "youtube_api": "configured" if youtube else "not configured",
-            "gemini_api": "configured" if gemini_client else "not configured",
-        }
-    )
+    health_status = {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "youtube_api": "configured" if youtube else "not configured",
+        "gemini_api": "configured" if gemini_client else "not configured",
+    }
+    
+    # 環境変数の健全性チェック
+    env_issues = []
+    try:
+        get_transcript_api_token()
+        health_status["auth_token"] = "configured"
+    except ValueError:
+        health_status["auth_token"] = "not configured"
+        env_issues.append("TRANSCRIPT_API_TOKEN missing")
+    
+    try:
+        get_youtube_api_key()
+        health_status["youtube_api_key"] = "configured"
+    except ValueError:
+        health_status["youtube_api_key"] = "not configured"
+        env_issues.append("YOUTUBE_API_KEY missing")
+    
+    try:
+        get_gemini_api_key()
+        health_status["gemini_api_key"] = "configured"
+    except ValueError:
+        health_status["gemini_api_key"] = "not configured"
+        env_issues.append("GEMINI_API_KEY missing")
+    
+    if env_issues:
+        health_status["status"] = "degraded"
+        health_status["issues"] = env_issues
+        return jsonify(health_status), 503
+    
+    return jsonify(health_status)
 
 
 @app.route("/extract", methods=["POST"])
@@ -731,6 +796,10 @@ def server_error(e):
 
 
 if __name__ == "__main__":
+    # 起動時環境変数検証を実行
+    logger.info("🔍 Starting YouTube Transcript Extractor with environment validation...")
+    validate_environment_on_startup()
+    
     # Cloud Run環境かローカル環境かを判定
     is_cloud_run = os.environ.get("K_SERVICE") is not None
 
