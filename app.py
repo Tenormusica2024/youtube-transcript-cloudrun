@@ -99,19 +99,38 @@ def require_auth(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         auth_header = request.headers.get("Authorization")
+        logger.info(f"Received auth header: {repr(auth_header)}")
+        
         if not auth_header:
+            logger.warning("No authorization header provided")
             return jsonify({"error": "Authorization header required"}), 401
 
         try:
-            scheme, token = auth_header.split(" ", 1)
+            parts = auth_header.split(" ", 1)
+            logger.info(f"Auth header split into {len(parts)} parts: {parts}")
+            
+            if len(parts) != 2:
+                logger.warning(f"Invalid authorization header format: expected 2 parts, got {len(parts)}")
+                return jsonify({"error": "Invalid Authorization header format"}), 401
+                
+            scheme, token = parts
+            logger.info(f"Scheme: {repr(scheme)}, Token: {repr(token[:10])}...")
+            
             if scheme.lower() != "bearer":
+                logger.warning(f"Invalid scheme: expected 'bearer', got {repr(scheme)}")
                 return jsonify({"error": "Bearer token required"}), 401
 
             expected_token = get_transcript_api_token()
+            logger.info(f"Expected token: {repr(expected_token[:10] if expected_token else None)}...")
+            
             if token != expected_token:
+                logger.warning(f"Token mismatch: got {repr(token[:10])}..., expected {repr(expected_token[:10] if expected_token else None)}...")
                 return jsonify({"error": "Invalid token"}), 401
 
-        except ValueError:
+            logger.info("Authorization successful")
+
+        except ValueError as ve:
+            logger.error(f"ValueError in auth: {ve}")
             return jsonify({"error": "Invalid Authorization header format"}), 401
         except Exception as e:
             logger.error(f"Auth error: {e}")
