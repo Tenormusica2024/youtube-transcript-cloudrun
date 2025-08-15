@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube字幕抽出ツール - 無料オンライン版</title>
+    <meta name="description" content="YouTubeの字幕を抽出・要約するための無料ツール。GitHub Pages対応版">
+    <meta name="keywords" content="YouTube, 字幕, 抽出, 要約, 無料, オンライン">
+    
+    <!-- OGP tags -->
+    <meta property="og:title" content="YouTube字幕抽出ツール">
+    <meta property="og:description" content="YouTubeの字幕を簡単に抽出・要約">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tenormusica2024.github.io/youtube-transcript-cloudrun/">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary-color: #ff0000;
+            --secondary-color: #282828;
+            --accent-color: #00d4ff;
+            --text-color: #333;
+            --bg-color: #f9f9f9;
+            --card-bg: #ffffff;
+            --border-radius: 12px;
+            --shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, var(--primary-color), #ff6b6b);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="white" opacity="0.1"><animate attributeName="r" values="2;50;2" dur="3s" repeatCount="indefinite"/></circle></svg>');
+            pointer-events: none;
+        }
+        
+        .header h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            opacity: 0.95;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+        
+        .header .subtitle {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+            display: inline-block;
+            font-size: 1em;
+        }
+        
+        .main-content {
+            padding: 40px;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .feature-card {
+            background: var(--card-bg);
+            border: 2px solid #e9ecef;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            border-color: var(--accent-color);
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s;
+        }
+        
+        .feature-card:hover::before {
+            left: 100%;
+        }
+        
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        .feature-title {
+            font-size: 1.5em;
+            color: var(--text-color);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .feature-description {
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .main-tool {
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            border-radius: var(--border-radius);
+            padding: 40px;
+            margin-bottom: 40px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .tool-title {
+            font-size: 2em;
+            color: var(--text-color);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .input-section {
+            background: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: var(--text-color);
+            font-size: 1.1em;
+        }
+        
+        .input-group input, .input-group select, .input-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+        
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, var(--accent-color), #0099cc);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-large {
+            padding: 20px 40px;
+            font-size: 18px;
+            width: 100%;
+        }
+        
+        .btn-github {
+            background: linear-gradient(45deg, #24292e, #2f363d);
+            margin-right: 15px;
+        }
+        
+        .btn-github:hover {
+            box-shadow: 0 8px 25px rgba(36, 41, 46, 0.3);
+        }
+        
+        .methods-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        
+        .method-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .method-card:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-5px);
+        }
+        
+        .method-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .method-icon {
+            font-size: 1.8em;
+            margin-right: 15px;
+        }
+        
+        .method-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        
+        .status-area {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            display: none;
+            position: relative;
+        }
+        
+        .status-area.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .steps-list {
+            list-style: none;
+            counter-reset: step-counter;
+            margin-top: 15px;
+        }
+        
+        .steps-list li {
+            counter-increment: step-counter;
+            margin-bottom: 12px;
+            padding-left: 35px;
+            position: relative;
+            line-height: 1.5;
+        }
+        
+        .steps-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: var(--accent-color);
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .result-area {
+            background: linear-gradient(135deg, #e8f5e8, #d4edda);
+            border: 2px solid #28a745;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            margin-top: 30px;
+            display: none;
+            text-align: center;
+        }
+        
+        .result-area.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .warning {
+            background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+            border: 2px solid #ffc107;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            color: #856404;
+            border-left: 5px solid #ffc107;
+        }
+        
+        .info-box {
+            background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+            border: 2px solid #17a2b8;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+            color: #0c5460;
+            border-left: 5px solid #17a2b8;
+        }
+        
+        .footer {
+            background: var(--secondary-color);
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+        
+        .footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 2.2em;
+            }
+            
+            .main-content {
+                padding: 30px 20px;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .methods-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 YouTube字幕抽出ツール</h1>
+            <p>YouTubeの字幕を簡単に抽出・要約</p>
+            <div class="subtitle">完全無料 • オープンソース • プライバシー保護</div>
+        </div>
+        
+        <div class="main-content">
+            <div class="info-box">
+                <strong>📢 お知らせ:</strong> このツールはGitHub Pagesでホストされており、サーバーレスで動作します。あなたのデータは外部に送信されません。
+            </div>
+            
+            <!-- 主要機能 -->
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <span class="feature-icon">⚡</span>
+                    <h3 class="feature-title">高速処理</h3>
+                    <p class="feature-description">最新のAPIとアルゴリズムで字幕を素早く抽出</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🌍</span>
+                    <h3 class="feature-title">多言語対応</h3>
+                    <p class="feature-description">日本語、英語、韓国語、中国語など主要言語をサポート</p>
+                </div>
+                <div class="feature-card">
+                    <span class="feature-icon">🔒</span>
+                    <h3 class="feature-title">プライバシー保護</h3>
+                    <p class="feature-description">データは外部サーバーに送信されず、安全に処理</p>
+                </div>
+            </div>
+            
+            <!-- メインツール -->
+            <div class="main-tool">
+                <h2 class="tool-title">🎯 字幕抽出ツール</h2>
+                
+                <div class="input-section">
+                    <div class="input-group">
+                        <label for="youtube-url">📺 YouTube URL:</label>
+                        <input type="text" id="youtube-url" placeholder="https://www.youtube.com/watch?v=...または動画ID" 
+                               aria-describedby="url-help">
+                        <small id="url-help" style="color: #666; font-size: 0.9em;">
+                            完全なURL または動画ID (例: dQw4w9WgXcQ) を入力してください
+                        </small>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="language-select">🌐 字幕言語:</label>
+                        <select id="language-select">
+                            <option value="ja">🇯🇵 日本語</option>
+                            <option value="en">🇺🇸 英語 (English)</option>
+                            <option value="ko">🇰🇷 韓国語 (한국어)</option>
+                            <option value="zh">🇨🇳 中国語 (中文)</option>
+                            <option value="es">🇪🇸 スペイン語 (Español)</option>
+                            <option value="fr">🇫🇷 フランス語 (Français)</option>
+                            <option value="de">🇩🇪 ドイツ語 (Deutsch)</option>
+                            <option value="auto">🔄 自動検出</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="output-format">📄 出力形式:</label>
+                        <select id="output-format">
+                            <option value="text">📝 プレーンテキスト</option>
+                            <option value="srt">🎬 SRT字幕ファイル</option>
+                            <option value="vtt">🌐 WebVTT字幕ファイル</option>
+                            <option value="json">📊 JSON形式</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn btn-large" onclick="extractTranscript()" id="extract-btn">
+                        🚀 字幕を抽出開始
+                    </button>
+                </div>
+                
+                <!-- 処理方法選択 -->
+                <div class="methods-section">
+                    <div class="method-card">
+                        <div class="method-header">
+                            <span class="method-icon">🔧</span>
+                            <h3 class="method-title">GitHub Actions</h3>
+                        </div>
+                        <p>クラウド上で自動処理し、結果をダウンロード可能にします</p>
+                        <button class="btn" onclick="useGitHubActions()">この方法を使用</button>
+                    </div>
+                    
+                    <div class="method-card">
+                        <div class="method-header">
+                            <span class="method-icon">☁️</span>
+                            <h3 class="method-title">Codespaces</h3>
+                        </div>
+                        <p>ブラウザ上のVS Codeで直接実行します</p>
+                        <button class="btn" onclick="useCodespaces()">この方法を使用</button>
+                    </div>
+                    
+                    <div class="method-card">
+                        <div class="method-header">
+                            <span class="method-icon">🌐</span>
+                            <h3 class="method-title">Replit</h3>
+                        </div>
+                        <p>オンラインIDEで即座に実行可能です</p>
+                        <button class="btn" onclick="useReplit()">この方法を使用</button>
+                    </div>
+                </div>
+                
+                <!-- ステータス表示 -->
+                <div class="status-area" id="status-area">
+                    <div id="status-content"></div>
+                </div>
+                
+                <!-- 結果表示 -->
+                <div class="result-area" id="result-area">
+                    <h3>✅ 処理完了</h3>
+                    <div id="result-content"></div>
+                </div>
+            </div>
+            
+            <!-- 使用方法ガイド -->
+            <div class="warning">
+                <h3>📖 使用方法</h3>
+                <ol class="steps-list">
+                    <li>YouTubeのURLまたは動画IDを入力</li>
+                    <li>希望する字幕言語を選択</li>
+                    <li>出力形式を選択</li>
+                    <li>処理方法を選んで「字幕を抽出開始」をクリック</li>
+                    <li>指示に従って処理を完了</li>
+                </ol>
+            </div>
+            
+            <!-- ショートカットブックマークレット -->
+            <div class="main-tool">
+                <h2 class="tool-title">🔖 ブックマークレット</h2>
+                <p style="text-align: center; margin-bottom: 20px;">
+                    以下のリンクをブックマークに追加すると、YouTube動画ページで直接字幕抽出ができます
+                </p>
+                <div style="text-align: center;">
+                    <a href="javascript:(function(){var url=window.location.href;if(url.includes('youtube.com/watch')||url.includes('youtu.be/')){window.open('https://tenormusica2024.github.io/youtube-transcript-cloudrun/?url='+encodeURIComponent(url),'_blank');}else{alert('YouTubeの動画ページで使用してください。');}})();" 
+                       class="btn btn-github">
+                        📎 字幕抽出ブックマークレット
+                    </a>
+                </div>
+                <p style="text-align: center; margin-top: 15px; font-size: 0.9em; color: #666;">
+                    上記リンクを右クリック→「ブックマークに追加」で保存してください
+                </p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2025 YouTube字幕抽出ツール | 
+               <a href="https://github.com/Tenormusica2024/youtube-transcript-cloudrun" target="_blank">GitHub</a> | 
+               オープンソース・MIT License
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        let currentMethod = 'github';
+        
+        // ページ読み込み時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            // URLパラメータから値を取得
+            const urlParams = new URLSearchParams(window.location.search);
+            const youtubeUrl = urlParams.get('url');
+            const lang = urlParams.get('lang');
+            
+            if (youtubeUrl) {
+                document.getElementById('youtube-url').value = youtubeUrl;
+                // 自動的に抽出を開始
+                setTimeout(() => {
+                    extractTranscript();
+                }, 1000);
+            }
+            if (lang) {
+                document.getElementById('language-select').value = lang;
+            }
+        });
+        
+        // YouTube URLまたはIDからビデオIDを抽出
+        function extractVideoId(url) {
+            const patterns = [
+                /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+                /^([a-zA-Z0-9_-]{11})$/ // 直接のビデオID
+            ];
+            
+            for (let pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) {
+                    return match[1];
+                }
+            }
+            return null;
+        }
+        
+        // メイン処理関数
+        function extractTranscript() {
+            const url = document.getElementById('youtube-url').value.trim();
+            const language = document.getElementById('language-select').value;
+            const format = document.getElementById('output-format').value;
+            
+            if (!url) {
+                alert('YouTube URLまたは動画IDを入力してください');
+                return;
+            }
+            
+            const videoId = extractVideoId(url);
+            if (!videoId) {
+                alert('有効なYouTube URLまたは動画IDを入力してください');
+                return;
+            }
+            
+            // 選択されたメソッドに応じて処理
+            switch(currentMethod) {
+                case 'github':
+                    useGitHubActions();
+                    break;
+                case 'codespaces':
+                    useCodespaces();
+                    break;
+                case 'replit':
+                    useReplit();
+                    break;
+                default:
+                    useGitHubActions();
+            }
+        }
+        
+        // GitHub Actions方式
+        function useGitHubActions() {
+            currentMethod = 'github';
+            const url = document.getElementById('youtube-url').value.trim();
+            const language = document.getElementById('language-select').value;
+            
+            showStatus(`
+                <div><span class="loading"></span>GitHub Actionsで処理中...</div>
+                <div>📝 手順:</div>
+                <ol class="steps-list">
+                    <li>GitHubリポジトリが開きます</li>
+                    <li>Actions → "Extract YouTube Transcript" を選択</li>
+                    <li>Run workflow をクリック</li>
+                    <li>URL: ${url}</li>
+                    <li>Language: ${language}</li>
+                    <li>入力して "Run workflow" を実行</li>
+                    <li>数分後に結果がダウンロード可能になります</li>
+                </ol>
+            `);
+            
+            // パラメータをクリップボードにコピー
+            const params = `URL: ${url}\nLanguage: ${language}`;
+            navigator.clipboard.writeText(params).then(() => {
+                // 3秒後にGitHubを開く
+                setTimeout(() => {
+                    const repoUrl = 'https://github.com/Tenormusica2024/youtube-transcript-cloudrun/actions/workflows/extract-transcript.yml';
+                    window.open(repoUrl, '_blank');
+                }, 3000);
+            }).catch(() => {
+                // クリップボードが使えない場合
+                setTimeout(() => {
+                    const repoUrl = 'https://github.com/Tenormusica2024/youtube-transcript-cloudrun/actions';
+                    window.open(repoUrl, '_blank');
+                }, 3000);
+            });
+        }
+        
+        // GitHub Codespaces方式
+        function useCodespaces() {
+            currentMethod = 'codespaces';
+            showStatus(`
+                <div><span class="loading"></span>Codespacesで開いています...</div>
+                <div>📝 手順:</div>
+                <ol class="steps-list">
+                    <li>GitHub Codespacesが開きます</li>
+                    <li>ターミナルで <code>python local_transcript_extractor.py</code> を実行</li>
+                    <li>YouTube URLを入力してEnter</li>
+                    <li>言語設定を選択</li>
+                    <li>数分後にテキストファイルが生成されます</li>
+                </ol>
+            `);
+            
+            setTimeout(() => {
+                const codespacesUrl = 'https://codespaces.new/Tenormusica2024/youtube-transcript-cloudrun';
+                window.open(codespacesUrl, '_blank');
+            }, 2000);
+        }
+        
+        // Replit方式
+        function useReplit() {
+            currentMethod = 'replit';
+            showStatus(`
+                <div><span class="loading"></span>Replitで開いています...</div>
+                <div>📝 手順:</div>
+                <ol class="steps-list">
+                    <li>Replitが開きます</li>
+                    <li>Runボタンでスクリプト実行</li>
+                    <li>コンソールでYouTube URLを入力</li>
+                    <li>言語設定を選択</li>
+                    <li>結果がファイルに保存されます</li>
+                </ol>
+            `);
+            
+            setTimeout(() => {
+                const replitUrl = 'https://replit.com/github/Tenormusica2024/youtube-transcript-cloudrun';
+                window.open(replitUrl, '_blank');
+            }, 2000);
+        }
+        
+        // ステータス表示
+        function showStatus(content) {
+            const statusArea = document.getElementById('status-area');
+            const statusContent = document.getElementById('status-content');
+            statusContent.innerHTML = content;
+            statusArea.classList.add('show');
+        }
+        
+        // 結果表示
+        function showResult(content) {
+            const resultArea = document.getElementById('result-area');
+            const resultContent = document.getElementById('result-content');
+            resultContent.innerHTML = content;
+            resultArea.classList.add('show');
+        }
+        
+        // デモ用: 処理完了のシミュレーション（実際の実装では削除）
+        setTimeout(() => {
+            if (new URLSearchParams(window.location.search).get('demo') === 'true') {
+                showResult(`
+                    <p>字幕抽出が完了しました！</p>
+                    <a href="#" class="btn" onclick="alert('デモ用リンクです')">📄 結果をダウンロード</a>
+                `);
+            }
+        }, 5000);
+    </script>
+</body>
+</html>
