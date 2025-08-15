@@ -1,0 +1,7 @@
+# GitHub Pages configuration
+theme: minima
+title: "YouTube字幕抽出ツール"
+description: "無料でYouTubeの字幕を抽出・要約するオンラインツール"
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
