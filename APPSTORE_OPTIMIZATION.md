@@ -1,20 +1,20 @@
-# App Store Optimization Guide
+# App Store最適化ガイド
 
-## Overview
+## 概要
 
-This document outlines the comprehensive App Store compliance optimizations implemented for the YouTube Transcript Extractor application. All implementations follow Apple App Store review guidelines and modern web security standards.
+このドキュメントは、YouTube字幕抽出アプリケーションに実装されたApp Store審査対応の包括的な最適化について説明します。すべての実装はApple App Store審査ガイドラインと最新のWebセキュリティ標準に準拠しています。
 
-## Security Enhancements
+## セキュリティ強化
 
-### SSL/HTTPS Implementation
-- **Self-signed SSL certificate generation** with 365-day validity
-- **HTTPS-first configuration** with automatic redirect
-- **Production-ready SSL context** for secure communications
-- **Multi-domain support** including localhost, ngrok, and custom domains
+### SSL/HTTPS実装
+- **自己署名SSL証明書生成** - 365日有効期限
+- **HTTPS優先設定** - 自動リダイレクト
+- **本番対応SSL設定** - セキュア通信
+- **マルチドメイン対応** - localhost、ngrok、カスタムドメイン
 
-### Security Headers
+### セキュリティヘッダー
 ```python
-# Implemented security headers for App Store compliance
+# App Store審査対応のセキュリティヘッダー実装
 'X-Content-Type-Options': 'nosniff'
 'X-Frame-Options': 'DENY'  
 'X-XSS-Protection': '1; mode=block'
@@ -23,216 +23,216 @@ This document outlines the comprehensive App Store compliance optimizations impl
 'Referrer-Policy': 'strict-origin-when-cross-origin'
 ```
 
-### Rate Limiting
-- **API endpoint protection** with 60 requests/minute per IP
-- **Automatic cleanup** of expired rate limit entries
-- **429 status code** responses for exceeded limits
-- **Retry-After headers** for client guidance
+### レート制限
+- **APIエンドポイント保護** - 60リクエスト/分 per IP
+- **期限切れエントリの自動クリーンアップ**
+- **429ステータスコード** - 制限超過時の応答
+- **Retry-Afterヘッダー** - クライアント向けガイダンス
 
-## Performance Optimizations
+## パフォーマンス最適化
 
-### Caching Implementation
-- **LRU cache** for transcript responses (100MB capacity)
-- **Response compression** with GZIP for bandwidth optimization
-- **Mobile-optimized** viewport and rendering
-- **Memory usage monitoring** with automatic cleanup
+### キャッシュ実装
+- **LRUキャッシュ** - 字幕応答用（100MB容量）
+- **レスポンス圧縮** - 帯域幅最適化のためのGZIP
+- **モバイル最適化** - ビューポートとレンダリング
+- **メモリ使用量監視** - 自動クリーンアップ機能
 
-### File Structure
+### ファイル構造
 ```
 C:\Users\Tenormusica\youtube_transcript_webapp\
-├── app_mobile.py              # Main Flask application with optimizations
-├── performance_optimizer.py   # Performance enhancement module
-├── generate_ssl_simple.py     # SSL certificate generator
-├── requirements_production.txt # Production dependencies
-├── start_production.bat       # Production deployment script
+├── app_mobile.py              # 最適化済みメインFlaskアプリケーション
+├── performance_optimizer.py   # パフォーマンス強化モジュール
+├── generate_ssl_simple.py     # SSL証明書生成ツール
+├── requirements_production.txt # 本番環境依存関係
+├── start_production.bat       # 本番環境デプロイスクリプト
 └── templates/
-    └── index_mobile.html      # Mobile-optimized frontend
+    └── index_mobile.html      # モバイル最適化フロントエンド
 ```
 
-## Production Deployment
+## 本番環境デプロイ
 
-### Environment Configuration
+### 環境設定
 ```bash
-# Production environment variables
+# 本番環境の環境変数
 FLASK_ENV=production
-SECRET_KEY=<secure-random-key>
+SECRET_KEY=<セキュアなランダムキー>
 PREFERRED_URL_SCHEME=https
-GEMINI_API_KEY=<your-gemini-api-key>
+GEMINI_API_KEY=<あなたのGemini APIキー>
 ```
 
-### Gunicorn Configuration
+### Gunicorn設定
 ```bash
-# Production server with SSL support
+# SSL対応の本番サーバー
 gunicorn --bind 0.0.0.0:8085 --workers 4 --threads 2 --timeout 120 --certfile=ssl/certificate.crt --keyfile=ssl/private.key app_mobile:app
 ```
 
-### Health Monitoring
-- **Enhanced health check endpoint** (`/health`)
-- **Detailed status monitoring** (`/api/status`)
-- **Service availability tracking** (YouTube API, AI formatting, ngrok)
-- **Performance metrics** (active requests, uptime)
+### ヘルス監視
+- **拡張ヘルスチェックエンドポイント** (`/health`)
+- **詳細ステータス監視** (`/api/status`)
+- **サービス可用性追跡** (YouTube API、AI整形、ngrok)
+- **パフォーマンス指標** (アクティブリクエスト、稼働時間)
 
-## Error Handling
+## エラーハンドリング
 
-### User-Friendly Error Messages
-- **Sanitized error responses** (no internal details exposed)
-- **Specific error codes** for different failure types
-- **Graceful degradation** when AI formatting fails
-- **Comprehensive logging** for debugging
+### ユーザーフレンドリーなエラーメッセージ
+- **サニタイズされたエラー応答** (内部詳細の非公開)
+- **特定エラーコード** - 失敗タイプ別
+- **グレースフル劣化** - AI整形失敗時
+- **包括的ログ** - デバッグ用
 
-### Fallback Mechanisms
-- **Basic text formatting** when AI API unavailable
-- **Multiple language support** with automatic fallback
-- **Transcript source prioritization** (ja → en → any available)
+### フォールバック機能
+- **基本テキスト整形** - AI API利用不可時
+- **多言語サポート** - 自動フォールバック
+- **字幕ソース優先順位** (ja → en → 利用可能な任意)
 
-## API Security
+## APIセキュリティ
 
-### Input Validation
+### 入力検証
 ```python
-# Comprehensive input validation
-- URL format verification
-- Language code validation  
-- Request size limitations
-- JSON payload sanitization
+# 包括的入力検証
+- URL形式検証
+- 言語コード検証  
+- リクエストサイズ制限
+- JSONペイロードサニタイゼーション
 ```
 
-### Response Sanitization
-- **Content filtering** to remove AI artifacts
-- **Text cleanup** of formatting instructions
-- **Structured response format** with clear data separation
+### レスポンスサニタイゼーション
+- **コンテンツフィルタリング** - AIアーティファクト除去
+- **テキストクリーンアップ** - 整形指示の除去
+- **構造化レスポンス形式** - 明確なデータ分離
 
-## Testing & Validation
+## テストと検証
 
-### SSL Certificate Testing
+### SSL証明書テスト
 ```bash
-# Test SSL certificate validity
+# SSL証明書有効性テスト
 openssl x509 -in ssl/certificate.crt -text -noout
 openssl verify ssl/certificate.crt
 ```
 
-### Performance Testing
+### パフォーマンステスト
 ```bash
-# Load testing with production configuration
+# 本番設定での負荷テスト
 ab -n 1000 -c 10 https://localhost:8085/health
 curl -k https://localhost:8085/api/status
 ```
 
-### Security Validation
+### セキュリティ検証
 ```bash
-# Security header verification
+# セキュリティヘッダー確認
 curl -I https://localhost:8085/
-# Rate limiting testing
+# レート制限テスト
 for i in {1..70}; do curl https://localhost:8085/api/extract; done
 ```
 
-## App Store Compliance Checklist
+## App Store準拠チェックリスト
 
-### ✅ Security Requirements
-- [x] HTTPS enforcement
-- [x] Security headers implementation
-- [x] Input validation and sanitization
-- [x] Rate limiting protection
-- [x] Error handling without information disclosure
+### ✅ セキュリティ要件
+- [x] HTTPS強制
+- [x] セキュリティヘッダー実装
+- [x] 入力検証とサニタイゼーション
+- [x] レート制限保護
+- [x] 情報漏洩のないエラーハンドリング
 
-### ✅ Performance Requirements  
-- [x] Response compression
-- [x] Caching implementation
-- [x] Mobile optimization
-- [x] Resource usage monitoring
+### ✅ パフォーマンス要件  
+- [x] レスポンス圧縮
+- [x] キャッシュ実装
+- [x] モバイル最適化
+- [x] リソース使用量監視
 
-### ✅ Reliability Requirements
-- [x] Health check endpoints
-- [x] Graceful error handling
-- [x] Service monitoring
-- [x] Automatic failover mechanisms
+### ✅ 信頼性要件
+- [x] ヘルスチェックエンドポイント
+- [x] グレースフルエラーハンドリング
+- [x] サービス監視
+- [x] 自動フェイルオーバー機能
 
-### ✅ Privacy Requirements
-- [x] No user data storage
-- [x] Secure API key handling
-- [x] Request anonymization
-- [x] Privacy-compliant headers
+### ✅ プライバシー要件
+- [x] ユーザーデータ保存なし
+- [x] セキュアなAPIキー処理
+- [x] リクエスト匿名化
+- [x] プライバシー準拠ヘッダー
 
-## Deployment Instructions
+## デプロイ手順
 
-### 1. SSL Certificate Generation
+### 1. SSL証明書生成
 ```bash
 cd youtube_transcript_webapp
 python generate_ssl_simple.py
 ```
 
-### 2. Production Dependencies
+### 2. 本番依存関係
 ```bash
 pip install -r requirements_production.txt
 ```
 
-### 3. Environment Setup
+### 3. 環境設定
 ```bash
 set FLASK_ENV=production
 set SECRET_KEY=your-secure-secret-key
 set GEMINI_API_KEY=your-gemini-api-key
 ```
 
-### 4. Start Production Server
+### 4. 本番サーバー起動
 ```bash
 start_production.bat
 ```
 
-### 5. Verification
+### 5. 確認
 ```bash
 curl -k https://localhost:8085/health
 curl -k https://localhost:8085/api/status
 ```
 
-## Performance Metrics
+## パフォーマンス指標
 
-### Expected Performance
-- **Response Time**: <500ms for transcript extraction
-- **Throughput**: 60 requests/minute per client
-- **Memory Usage**: <512MB for standard operations
-- **SSL Handshake**: <100ms for certificate validation
+### 期待性能
+- **応答時間**: <500ms (字幕抽出)
+- **スループット**: 60リクエスト/分 per クライアント
+- **メモリ使用量**: <512MB (標準動作)
+- **SSL ハンドシェイク**: <100ms (証明書検証)
 
-### Monitoring Dashboard
-- **Health Status**: `/health` endpoint
-- **Detailed Metrics**: `/api/status` endpoint  
-- **Real-time Monitoring**: Request count tracking
-- **Error Tracking**: Comprehensive logging system
+### 監視ダッシュボード
+- **ヘルス状態**: `/health` エンドポイント
+- **詳細指標**: `/api/status` エンドポイント  
+- **リアルタイム監視**: リクエスト数追跡
+- **エラー追跡**: 包括的ログシステム
 
-## Troubleshooting
+## トラブルシューティング
 
-### Common Issues
-1. **SSL Certificate Errors**: Regenerate certificates with extended validity
-2. **Rate Limiting**: Implement client-side request throttling
-3. **AI API Failures**: Verify Gemini API key configuration
-4. **ngrok Connectivity**: Check tunnel status and URL updates
+### よくある問題
+1. **SSL証明書エラー**: 有効期限延長での証明書再生成
+2. **レート制限**: クライアント側リクエスト調整の実装
+3. **AI API失敗**: Gemini APIキー設定の確認
+4. **ngrok接続**: トンネル状態とURL更新の確認
 
-### Debug Commands
+### デバッグコマンド
 ```bash
-# Check SSL configuration
+# SSL設定確認
 python -c "import ssl; print(ssl.OPENSSL_VERSION)"
 
-# Verify API endpoints
+# APIエンドポイント確認
 curl -k https://localhost:8085/api/access-info
 
-# Test rate limiting
+# レート制限テスト
 python -c "import requests; [print(requests.get('https://localhost:8085/health', verify=False).status_code) for _ in range(5)]"
 ```
 
-## Security Considerations
+## セキュリティ考慮事項
 
-### App Store Review Guidelines
-- **Data Collection**: No personal information stored
-- **External Connections**: Only to YouTube and Gemini APIs
-- **Content Policy**: Text-only content processing
-- **Age Restrictions**: General audience appropriate
+### App Store審査ガイドライン
+- **データ収集**: 個人情報の保存なし
+- **外部接続**: YouTubeとGemini APIのみ
+- **コンテンツポリシー**: テキストのみの処理
+- **年齢制限**: 全年齢対象
 
-### Production Security
-- **Certificate Management**: Regular SSL renewal
-- **API Key Rotation**: Periodic Gemini API key updates
-- **Access Logging**: Monitor for suspicious activity
-- **Security Updates**: Regular dependency updates
+### 本番セキュリティ
+- **証明書管理**: 定期的なSSL更新
+- **APIキーローテーション**: 定期的なGemini APIキー更新
+- **アクセスログ**: 不審な活動の監視
+- **セキュリティ更新**: 定期的な依存関係更新
 
 ---
 
-**Last Updated**: 2025-01-17  
-**Version**: 2.0.0-appstore  
-**Status**: Production Ready ✅
+**最終更新**: 2025-01-17  
+**バージョン**: 2.0.0-appstore  
+**ステータス**: 本番対応完了 ✅
