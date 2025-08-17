@@ -4,6 +4,31 @@
 
 このドキュメントは、YouTube字幕抽出アプリケーションに実装されたApp Store審査対応の包括的な最適化について説明します。すべての実装はApple App Store審査ガイドラインと最新のWebセキュリティ標準に準拠しています。
 
+## 新機能: YouTube Shorts完全対応
+
+### 対応URL形式
+- **通常動画**: `https://www.youtube.com/watch?v=VIDEO_ID`
+- **YouTube Shorts**: `https://www.youtube.com/shorts/VIDEO_ID`
+- **モバイル版**: `https://m.youtube.com/shorts/VIDEO_ID`
+- **短縮URL**: `https://youtu.be/VIDEO_ID`
+- **埋め込みURL**: `https://www.youtube.com/embed/VIDEO_ID`
+- **Vフォーマット**: `https://www.youtube.com/v/VIDEO_ID`
+
+### 実装詳細
+```python
+# YouTube Shorts URL解析の実装
+def get_video_id(url):
+    """YouTube URLから動画IDを抽出（YouTube Shorts対応）"""
+    parsed_url = urlparse(url)
+    
+    if parsed_url.hostname in ("www.youtube.com", "youtube.com", "m.youtube.com"):
+        # YouTube Shorts (/shorts/VIDEO_ID)
+        if parsed_url.path.startswith("/shorts/"):
+            video_id = parsed_url.path.split("/shorts/")[1].split("?")[0]
+            logger.info(f"YouTube Shorts動画を検出: {video_id}")
+            return video_id
+```
+
 ## セキュリティ強化
 
 ### SSL/HTTPS実装

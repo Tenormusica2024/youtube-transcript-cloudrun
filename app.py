@@ -29,25 +29,31 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 # 環境変数検証を統合
 def validate_environment_on_startup():
     """起動時環境変数検証"""
     try:
         import importlib.util
+
         env_validator_path = os.path.join(os.path.dirname(__file__), "env_validator.py")
-        
+
         if os.path.exists(env_validator_path):
-            spec = importlib.util.spec_from_file_location("env_validator", env_validator_path)
+            spec = importlib.util.spec_from_file_location(
+                "env_validator", env_validator_path
+            )
             env_validator = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(env_validator)
-            
+
             validator = env_validator.EnvValidator()
             is_valid = validator.validate_all()
-            
+
             if not is_valid:
-                logger.warning("⚠️  環境変数に問題が検出されました - 自動修正を試行中...")
+                logger.warning(
+                    "⚠️  環境変数に問題が検出されました - 自動修正を試行中..."
+                )
                 validator.auto_fix_env_file()
-                
+
                 # 修正後の再検証
                 validator_recheck = env_validator.EnvValidator()
                 validator_recheck.validate_all()
@@ -56,9 +62,10 @@ def validate_environment_on_startup():
                 logger.info("✅ 全ての環境変数が正常に設定されています")
         else:
             logger.warning("env_validator.py not found - skipping validation")
-            
+
     except Exception as e:
         logger.warning(f"Environment validation failed: {e}")
+
 
 # Flask アプリケーション設定
 app = Flask(__name__, template_folder="templates", static_folder="static")
@@ -246,23 +253,31 @@ def create_transcript_session_with_proxy():
 
 
 def get_video_id(url):
-    """YouTube URLから動画IDを抽出"""
+    """YouTube URLから動画IDを抽出（YouTube Shorts対応）"""
     try:
         parsed_url = urlparse(url)
 
         # youtu.be形式
         if parsed_url.hostname == "youtu.be":
-            return parsed_url.path[1:]
+            return parsed_url.path[1:].split("?")[0].split("&")[0]
 
         # youtube.com形式
-        if parsed_url.hostname in ("www.youtube.com", "youtube.com"):
+        if parsed_url.hostname in ("www.youtube.com", "youtube.com", "m.youtube.com"):
+            # 通常の動画 (/watch?v=VIDEO_ID)
             if parsed_url.path == "/watch":
                 params = parse_qs(parsed_url.query)
                 return params.get("v", [None])[0]
-            if parsed_url.path.startswith("/embed/"):
-                return parsed_url.path.split("/")[2]
-            if parsed_url.path.startswith("/v/"):
-                return parsed_url.path.split("/")[2]
+            # YouTube Shorts (/shorts/VIDEO_ID)
+            elif parsed_url.path.startswith("/shorts/"):
+                video_id = parsed_url.path.split("/shorts/")[1].split("?")[0].split("&")[0]
+                logger.info(f"YouTube Shorts動画を検出: {video_id}")
+                return video_id
+            # Embed形式 (/embed/VIDEO_ID)
+            elif parsed_url.path.startswith("/embed/"):
+                return parsed_url.path.split("/")[2].split("?")[0].split("&")[0]
+            # その他のパス形式 (/v/VIDEO_ID)
+            elif parsed_url.path.startswith("/v/"):
+                return parsed_url.path.split("/")[2].split("?")[0].split("&")[0]
 
         raise ValueError(f"無効なYouTube URLです: {url}")
     except Exception as e:
@@ -549,7 +564,7 @@ def health():
         "youtube_api": "configured" if youtube else "not configured",
         "gemini_api": "configured" if gemini_client else "not configured",
     }
-    
+
     # 環境変数の健全性チェック
     env_issues = []
     try:
@@ -558,26 +573,26 @@ def health():
     except ValueError:
         health_status["auth_token"] = "not configured"
         env_issues.append("TRANSCRIPT_API_TOKEN missing")
-    
+
     try:
         get_youtube_api_key()
         health_status["youtube_api_key"] = "configured"
     except ValueError:
         health_status["youtube_api_key"] = "not configured"
         env_issues.append("YOUTUBE_API_KEY missing")
-    
+
     try:
         get_gemini_api_key()
         health_status["gemini_api_key"] = "configured"
     except ValueError:
         health_status["gemini_api_key"] = "not configured"
         env_issues.append("GEMINI_API_KEY missing")
-    
+
     if env_issues:
         health_status["status"] = "degraded"
         health_status["issues"] = env_issues
         return jsonify(health_status), 503
-    
+
     return jsonify(health_status)
 
 
@@ -797,9 +812,11 @@ def server_error(e):
 
 if __name__ == "__main__":
     # 起動時環境変数検証を実行
-    logger.info("🔍 Starting YouTube Transcript Extractor with environment validation...")
+    logger.info(
+        "🔍 Starting YouTube Transcript Extractor with environment validation..."
+    )
     validate_environment_on_startup()
-    
+
     # Cloud Run環境かローカル環境かを判定
     is_cloud_run = os.environ.get("K_SERVICE") is not None
 

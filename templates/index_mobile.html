@@ -346,7 +346,7 @@
         <div class="container-fluid py-3" style="background-color: #ffffff;">
             <div class="text-center">
                 <p class="mb-0 text-muted fs-6">
-                    YouTube動画のURLから字幕を自動抽出、AIで要約するアプリです
+                    YouTube動画・Shortsから字幕を自動抽出、AIで整形・要約するアプリです
                 </p>
             </div>
         </div>
@@ -365,9 +365,14 @@
                     <form id="extractForm">
                         <!-- URL入力 -->
                         <div class="mb-3">
-                            <label for="youtubeUrl" class="form-label">YouTube URL</label>
+                            <label for="youtubeUrl" class="form-label">YouTube URL <span class="badge bg-success">Shorts対応</span></label>
                             <input type="url" class="form-control" id="youtubeUrl" 
-                                   placeholder="https://www.youtube.com/watch?v=..." required>
+                                   placeholder="通常動画、Shorts、短縮URLに対応..." required>
+                            <div class="form-text">
+                                <small class="text-muted">
+                                    対応形式: 通常動画、YouTube Shorts、youtu.be短縮URL、埋め込みURL
+                                </small>
+                            </div>
                         </div>
 
                         <!-- 設定オプション -->

@@ -62,23 +62,31 @@ except Exception as e:
 
 
 def get_video_id(url):
-    """YouTube URLから動画IDを抽出"""
+    """YouTube URLから動画IDを抽出（YouTube Shorts対応）"""
     try:
         parsed_url = urlparse(url)
 
         # youtu.be形式
         if parsed_url.hostname == "youtu.be":
-            return parsed_url.path[1:]
+            return parsed_url.path[1:].split("?")[0].split("&")[0]
 
         # youtube.com形式
-        if parsed_url.hostname in ("www.youtube.com", "youtube.com"):
+        if parsed_url.hostname in ("www.youtube.com", "youtube.com", "m.youtube.com"):
+            # 通常の動画 (/watch?v=VIDEO_ID)
             if parsed_url.path == "/watch":
                 params = parse_qs(parsed_url.query)
                 return params.get("v", [None])[0]
-            if parsed_url.path.startswith("/embed/"):
-                return parsed_url.path.split("/")[2]
-            if parsed_url.path.startswith("/v/"):
-                return parsed_url.path.split("/")[2]
+            # YouTube Shorts (/shorts/VIDEO_ID)
+            elif parsed_url.path.startswith("/shorts/"):
+                video_id = parsed_url.path.split("/shorts/")[1].split("?")[0].split("&")[0]
+                logger.info(f"YouTube Shorts動画を検出: {video_id}")
+                return video_id
+            # Embed形式 (/embed/VIDEO_ID)
+            elif parsed_url.path.startswith("/embed/"):
+                return parsed_url.path.split("/")[2].split("?")[0].split("&")[0]
+            # その他のパス形式 (/v/VIDEO_ID)
+            elif parsed_url.path.startswith("/v/"):
+                return parsed_url.path.split("/")[2].split("?")[0].split("&")[0]
 
         raise ValueError(f"無効なYouTube URLです: {url}")
     except Exception as e:

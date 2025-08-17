@@ -305,19 +305,37 @@ def format_text_basic(text):
 
 
 def extract_youtube_transcript(video_url, language_code="ja"):
-    """YouTube字幕抽出"""
+    """YouTube字幕抽出（YouTube Shorts対応）"""
     try:
         # Video IDを抽出
         parsed_url = urlparse(video_url)
-        if "youtube.com" in parsed_url.netloc:
-            video_id = parse_qs(parsed_url.query).get("v", [None])[0]
+        video_id = None
+        
+        if "youtube.com" in parsed_url.netloc or "m.youtube.com" in parsed_url.netloc:
+            # 通常の YouTube 動画 (/watch?v=VIDEO_ID)
+            if parsed_url.path == "/watch":
+                video_id = parse_qs(parsed_url.query).get("v", [None])[0]
+            # YouTube Shorts (/shorts/VIDEO_ID)
+            elif parsed_url.path.startswith("/shorts/"):
+                video_id = parsed_url.path.split("/shorts/")[1].split("?")[0]
+                logger.info(f"YouTube Shorts動画を検出: {video_id}")
+            # Embed形式 (/embed/VIDEO_ID)
+            elif parsed_url.path.startswith("/embed/"):
+                video_id = parsed_url.path.split("/embed/")[1].split("?")[0]
+            # その他のパス形式
+            elif parsed_url.path.startswith("/v/"):
+                video_id = parsed_url.path.split("/v/")[1].split("?")[0]
         elif "youtu.be" in parsed_url.netloc:
-            video_id = parsed_url.path[1:]
+            # 短縮URL形式 (youtu.be/VIDEO_ID)
+            video_id = parsed_url.path[1:].split("?")[0]
         else:
             raise ValueError("有効なYouTube URLではありません")
 
         if not video_id:
             raise ValueError("動画IDを取得できませんでした")
+        
+        # Video IDにクエリパラメータが含まれている場合は除去
+        video_id = video_id.split("&")[0]
 
         logger.info(f"動画ID: {video_id} の字幕を取得中...")
 

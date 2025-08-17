@@ -5,13 +5,15 @@ YouTube Transcript Webapp - Production Ready
 """
 
 import os
+import socket
 import sys
+from datetime import datetime, timedelta
+
 from cryptography import x509
-from cryptography.x509.oid import NameOID
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
-from datetime import datetime, timedelta
-import socket
+from cryptography.x509.oid import NameOID
+
 
 def get_local_ip():
     """Get local IP address"""
@@ -22,114 +24,126 @@ def get_local_ip():
     except Exception:
         return "127.0.0.1"
 
+
 def generate_ssl_certificate():
     """Generate SSL certificate and private key"""
-    
+
     print("[SSL] Generating SSL Certificate for App Store Compliance...")
-    
+
     # Generate private key
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
     )
-    
+
     # Get local IP for certificate
     local_ip = get_local_ip()
-    
+
     # Certificate details
-    subject = issuer = x509.Name([
-        x509.NameAttribute(NameOID.COUNTRY_NAME, "JP"),
-        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "Tokyo"),
-        x509.NameAttribute(NameOID.LOCALITY_NAME, "Tokyo"),
-        x509.NameAttribute(NameOID.ORGANIZATION_NAME, "YouTube Transcript App"),
-        x509.NameAttribute(NameOID.COMMON_NAME, "localhost"),
-    ])
-    
+    subject = issuer = x509.Name(
+        [
+            x509.NameAttribute(NameOID.COUNTRY_NAME, "JP"),
+            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "Tokyo"),
+            x509.NameAttribute(NameOID.LOCALITY_NAME, "Tokyo"),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, "YouTube Transcript App"),
+            x509.NameAttribute(NameOID.COMMON_NAME, "localhost"),
+        ]
+    )
+
     # Certificate builder
-    cert = x509.CertificateBuilder().subject_name(
-        subject
-    ).issuer_name(
-        issuer
-    ).public_key(
-        private_key.public_key()
-    ).serial_number(
-        x509.random_serial_number()
-    ).not_valid_before(
-        datetime.utcnow()
-    ).not_valid_after(
-        datetime.utcnow() + timedelta(days=365)
-    ).add_extension(
-        x509.SubjectAlternativeName([
-            x509.DNSName("localhost"),
-            x509.DNSName("127.0.0.1"),
-            x509.DNSName(local_ip),
-            x509.DNSName("*.ngrok-free.app"),
-            x509.DNSName("*.ngrok.app"),
-        ]),
-        critical=False,
-    ).add_extension(
-        x509.KeyUsage(
-            digital_signature=True,
-            key_encipherment=True,
-            content_commitment=False,
-            data_encipherment=False,
-            key_agreement=False,
-            key_cert_sign=False,
-            crl_sign=False,
-            encipher_only=False,
-            decipher_only=False,
-        ),
-        critical=True,
-    ).add_extension(
-        x509.ExtendedKeyUsage([
-            x509.oid.ExtendedKeyUsageOID.SERVER_AUTH,
-        ]),
-        critical=True,
-    ).sign(private_key, hashes.SHA256())
-    
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(private_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(datetime.utcnow())
+        .not_valid_after(datetime.utcnow() + timedelta(days=365))
+        .add_extension(
+            x509.SubjectAlternativeName(
+                [
+                    x509.DNSName("localhost"),
+                    x509.DNSName("127.0.0.1"),
+                    x509.DNSName(local_ip),
+                    x509.DNSName("*.ngrok-free.app"),
+                    x509.DNSName("*.ngrok.app"),
+                ]
+            ),
+            critical=False,
+        )
+        .add_extension(
+            x509.KeyUsage(
+                digital_signature=True,
+                key_encipherment=True,
+                content_commitment=False,
+                data_encipherment=False,
+                key_agreement=False,
+                key_cert_sign=False,
+                crl_sign=False,
+                encipher_only=False,
+                decipher_only=False,
+            ),
+            critical=True,
+        )
+        .add_extension(
+            x509.ExtendedKeyUsage(
+                [
+                    x509.oid.ExtendedKeyUsageOID.SERVER_AUTH,
+                ]
+            ),
+            critical=True,
+        )
+        .sign(private_key, hashes.SHA256())
+    )
+
     # Create ssl directory if it doesn't exist
-    os.makedirs('ssl', exist_ok=True)
-    
+    os.makedirs("ssl", exist_ok=True)
+
     # Write private key
-    with open('ssl/private.key', 'wb') as f:
-        f.write(private_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption()
-        ))
-    
+    with open("ssl/private.key", "wb") as f:
+        f.write(
+            private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+        )
+
     # Write certificate
-    with open('ssl/certificate.crt', 'wb') as f:
+    with open("ssl/certificate.crt", "wb") as f:
         f.write(cert.public_bytes(serialization.Encoding.PEM))
-    
+
     # Create combined certificate file for some applications
-    with open('ssl/fullchain.pem', 'wb') as f:
+    with open("ssl/fullchain.pem", "wb") as f:
         f.write(cert.public_bytes(serialization.Encoding.PEM))
-        f.write(private_key.private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.PKCS8,
-            encryption_algorithm=serialization.NoEncryption()
-        ))
-    
+        f.write(
+            private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+        )
+
     print("[SUCCESS] SSL Certificate generated successfully!")
     print("Certificate: ssl/certificate.crt")
     print("Private Key: ssl/private.key")
     print("Full Chain: ssl/fullchain.pem")
     print("Local IP: " + local_ip)
     print("Valid for: 365 days")
-    
+
     # Set proper permissions (Unix-like systems)
-    if os.name != 'nt':
-        os.chmod('ssl/private.key', 0o600)
-        os.chmod('ssl/certificate.crt', 0o644)
-        os.chmod('ssl/fullchain.pem', 0o600)
+    if os.name != "nt":
+        os.chmod("ssl/private.key", 0o600)
+        os.chmod("ssl/certificate.crt", 0o644)
+        os.chmod("ssl/fullchain.pem", 0o600)
         print("[SECURITY] Proper file permissions set")
-    
+
     return True
+
 
 def create_start_scripts():
     """Create production start scripts"""
-    
+
     # Windows batch file
     script_content = """@echo off
 REM Production Start Script with SSL (Windows)
@@ -164,10 +178,10 @@ if exist gunicorn.conf.py (
 
 pause
 """
-    
-    with open('start_production.bat', 'w') as f:
+
+    with open("start_production.bat", "w") as f:
         f.write(script_content)
-    
+
     # Unix shell script
     unix_script = """#!/bin/bash
 # Production Start Script with SSL
@@ -200,28 +214,29 @@ else
     python app_mobile.py
 fi
 """
-    
-    with open('start_production.sh', 'w') as f:
+
+    with open("start_production.sh", "w") as f:
         f.write(unix_script)
-    
+
     # Make executable on Unix-like systems
-    if os.name != 'nt':
-        os.chmod('start_production.sh', 0o755)
-    
+    if os.name != "nt":
+        os.chmod("start_production.sh", 0o755)
+
     print("[SCRIPTS] Production start scripts created")
+
 
 if __name__ == "__main__":
     try:
         print("[SETUP] Setting up Production SSL Environment...")
         print("=" * 50)
-        
+
         # Generate SSL certificate
         success = generate_ssl_certificate()
-        
+
         if success:
             # Create start scripts
             create_start_scripts()
-            
+
             print("\n" + "=" * 50)
             print("[COMPLETE] SSL Setup Complete!")
             print("\nNext Steps:")
@@ -234,7 +249,7 @@ if __name__ == "__main__":
             print("4. Verify SSL certificate in browser")
             print("\nNote: Self-signed certificate will show security warning")
             print("This is normal for development/testing environments")
-            
+
     except Exception as e:
         print("[ERROR] SSL setup failed: " + str(e))
         print("Make sure cryptography package is installed:")
