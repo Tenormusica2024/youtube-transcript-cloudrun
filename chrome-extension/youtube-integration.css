@@ -35,6 +35,37 @@
     background-color: var(--yt-spec-brand-button-text);
 }
 
+/* YouTube設定エリア内のボタン（最優先配置） */
+.yte-transcript-btn-player-settings {
+    padding: 8px;
+    font-size: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: white;
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 4px;
+    opacity: 0.8;
+}
+
+.yte-transcript-btn-player-settings:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    opacity: 1;
+}
+
+.yte-transcript-btn-player-settings svg {
+    width: 24px;
+    height: 24px;
+}
+
+.yte-transcript-btn-player-settings .yte-label {
+    display: none; /* 設定エリアではアイコンのみ */
+}
+
 /* プレイヤーコントロール内のボタン（小さめ） */
 .yte-transcript-btn-player-control {
     padding: 6px 10px;

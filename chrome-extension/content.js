@@ -135,8 +135,9 @@ class YouTubeTranscriptExtractor {
     }
     
     insertTranscriptButton() {
-        // 複数の挿入ポイントを試行
+        // 複数の挿入ポイントを試行（設定アイコン近くを優先）
         const insertionStrategies = [
+            () => this.insertIntoPlayerSettings(),
             () => this.insertIntoControlsRight(),
             () => this.insertIntoTopLevelButtons(),
             () => this.insertIntoPlayerActions(),
@@ -158,6 +159,33 @@ class YouTubeTranscriptExtractor {
         }
     }
     
+    insertIntoPlayerSettings() {
+        // YouTube設定ボタンの近くに挿入（最優先）
+        const settingsButton = document.querySelector('.ytp-settings-button');
+        const subtitlesButton = document.querySelector('.ytp-subtitles-button');
+        
+        // 設定ボタンまたは字幕ボタンの隣に配置
+        const targetButton = settingsButton || subtitlesButton;
+        if (targetButton && targetButton.parentNode) {
+            const button = this.createTranscriptButton('player-settings');
+            targetButton.parentNode.insertBefore(button, targetButton);
+            console.log('📍 YouTube設定エリアに挿入');
+            return true;
+        }
+        
+        // 右コントロールエリア全体から設定系ボタンを探す
+        const rightControls = document.querySelector('.ytp-right-controls');
+        if (rightControls) {
+            const button = this.createTranscriptButton('player-settings');
+            // 設定ボタンの前に挿入（通常は最後の子要素）
+            rightControls.appendChild(button);
+            console.log('📍 右コントロールエリアに挿入');
+            return true;
+        }
+        
+        return false;
+    }
+
     insertIntoControlsRight() {
         // プレイヤーコントロールの右側エリアに挿入
         const controlsRight = document.querySelector('.ytp-chrome-controls .ytp-right-controls');
@@ -225,10 +253,10 @@ class YouTubeTranscriptExtractor {
         button.id = 'yte-transcript-button';
         button.className = `yte-transcript-btn yte-transcript-btn-${type}`;
         
-        // ボタンの外観設定
+        // ボタンの外観設定（字幕特化アイコン）
         button.innerHTML = `
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM4 12h4v2H4v-2zm6 0h4v2h-4v-2zm6 0h4v2h-4v-2zM4 16h4v2H4v-2zm6 0h6v2h-6v-2z"/>
             </svg>
             <span class="yte-label">字幕抽出</span>
         `;
