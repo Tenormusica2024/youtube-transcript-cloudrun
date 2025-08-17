@@ -1,0 +1,66 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Transcript Extractor",
+  "version": "1.0.0",
+  "description": "YouTube動画から字幕を抽出し、AIで整形・要約するツール",
+  
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "https://m.youtube.com/*",
+    "https://youtube.com/*",
+    "http://localhost:8085/*",
+    "https://*.ngrok-free.app/*",
+    "https://*.ngrok.app/*"
+  ],
+  
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/watch*",
+        "https://www.youtube.com/shorts/*",
+        "https://m.youtube.com/watch*",
+        "https://m.youtube.com/shorts/*",
+        "https://youtube.com/watch*",
+        "https://youtube.com/shorts/*"
+      ],
+      "js": ["content.js"],
+      "css": ["youtube-integration.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "YouTube字幕抽出",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  
+  "background": {
+    "service_worker": "background.js"
+  },
+  
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*"],
+      "matches": ["https://www.youtube.com/*", "https://m.youtube.com/*"]
+    }
+  ]
+}

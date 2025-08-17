@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube字幕抽出 - 簡単インストール</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+            border-radius: 10px;
+            color: white;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .install-option {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #ff0000;
+        }
+        
+        .install-option.recommended {
+            background: #e8f5e8;
+            border-left-color: #4caf50;
+        }
+        
+        .install-option h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .badge-recommended {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .badge-easy {
+            background: #2196f3;
+            color: white;
+        }
+        
+        .badge-advanced {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .steps {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+        }
+        
+        .steps li {
+            padding: 8px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+        
+        .steps li:before {
+            content: counter(step-counter);
+            counter-increment: step-counter;
+            position: absolute;
+            left: 0;
+            top: 8px;
+            background: #ff0000;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .steps {
+            counter-reset: step-counter;
+        }
+        
+        .install-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            margin: 10px 10px 10px 0;
+        }
+        
+        .install-btn:hover {
+            background: linear-gradient(135deg, #cc0000 0%, #990000 100%);
+            transform: translateY(-1px);
+        }
+        
+        .install-btn-secondary {
+            background: #6c757d;
+        }
+        
+        .install-btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .prereq {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 6px;
+            padding: 10px 15px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .prereq strong {
+            color: #856404;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .comparison-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .stars {
+            color: #ffc107;
+        }
+        
+        .demo-video {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        
+        .demo-video img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 YouTube字幕抽出ツール</h1>
+            <p>YouTube動画の字幕を自動抽出・AI要約する簡単インストール</p>
+        </div>
+        
+        <!-- 推奨インストール方法 -->
+        <div class="install-option recommended">
+            <h3>
+                🥇 Tampermonkey版（最も簡単）
+                <span class="badge badge-recommended">推奨</span>
+                <span class="badge badge-easy">30秒</span>
+            </h3>
+            <p>最も簡単で高速な配布方法。1クリックで自動インストール可能。</p>
+            
+            <div class="prereq">
+                <strong>前提条件:</strong> Tampermonkey拡張機能（無料）
+            </div>
+            
+            <ol class="steps">
+                <li>Tampermonkey拡張機能をインストール（初回のみ）</li>
+                <li>下記の「ワンクリックインストール」ボタンをクリック</li>
+                <li>インストール確認画面で「インストール」をクリック</li>
+                <li>YouTubeで動画を開くと字幕抽出ボタンが自動表示</li>
+            </ol>
+            
+            <a href="https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo" 
+               class="install-btn install-btn-secondary" target="_blank">
+                1. Tampermonkey インストール
+            </a>
+            <a href="./tampermonkey-userscript.js" 
+               class="install-btn">
+                2. ワンクリックインストール
+            </a>
+        </div>
+        
+        <!-- Chrome拡張機能版 -->
+        <div class="install-option">
+            <h3>
+                🥈 Chrome拡張機能版（高機能）
+                <span class="badge badge-easy">1分</span>
+            </h3>
+            <p>フル機能版。ポップアップUI、設定管理、通知機能を含む完全版。</p>
+            
+            <ol class="steps">
+                <li>ZIPファイルをダウンロード・展開</li>
+                <li>Chrome設定で「拡張機能」→「デベロッパーモード」有効化</li>
+                <li>「パッケージ化されていない拡張機能を読み込む」で展開フォルダを選択</li>
+                <li>YouTubeで動画を開くと字幕抽出ボタンが表示</li>
+            </ol>
+            
+            <a href="#" class="install-btn" onclick="downloadChromeExtension()">
+                Chrome拡張機能をダウンロード
+            </a>
+            <a href="./chrome-extension/README.md" class="install-btn install-btn-secondary">
+                詳細な手順を確認
+            </a>
+        </div>
+        
+        <!-- ダイレクトCRX版 -->
+        <div class="install-option">
+            <h3>
+                🥉 CRXダイレクト版（中級者向け）
+                <span class="badge badge-advanced">1分</span>
+            </h3>
+            <p>CRXファイルを直接インストール。技術知識が必要ですが高速。</p>
+            
+            <ol class="steps">
+                <li>CRXファイルをダウンロード</li>
+                <li>Chrome拡張機能ページ（chrome://extensions/）を開く</li>
+                <li>CRXファイルをページにドラッグ＆ドロップ</li>
+                <li>「拡張機能を追加」で確認</li>
+            </ol>
+            
+            <a href="#" class="install-btn" onclick="generateCRX()">
+                CRXファイル生成・ダウンロード
+            </a>
+        </div>
+        
+        <!-- 比較表 -->
+        <h2>📊 インストール方法比較</h2>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>方法</th>
+                    <th>簡単さ</th>
+                    <th>所要時間</th>
+                    <th>技術知識</th>
+                    <th>機能</th>
+                    <th>おすすめ度</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Tampermonkey版</strong></td>
+                    <td><span class="stars">⭐⭐⭐⭐⭐</span></td>
+                    <td>30秒</td>
+                    <td>不要</td>
+                    <td>基本機能</td>
+                    <td><span class="stars">⭐⭐⭐⭐⭐</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Chrome拡張機能版</strong></td>
+                    <td><span class="stars">⭐⭐⭐⭐</span></td>
+                    <td>1分</td>
+                    <td>最小限</td>
+                    <td>全機能</td>
+                    <td><span class="stars">⭐⭐⭐⭐</span></td>
+                </tr>
+                <tr>
+                    <td><strong>CRXダイレクト版</strong></td>
+                    <td><span class="stars">⭐⭐⭐</span></td>
+                    <td>1分</td>
+                    <td>中程度</td>
+                    <td>全機能</td>
+                    <td><span class="stars">⭐⭐⭐</span></td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <!-- デモ動画 -->
+        <div class="demo-video">
+            <h3>🎥 使用方法デモ</h3>
+            <p>インストール後のYouTube画面：</p>
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300' viewBox='0 0 600 300'%3E%3Crect width='600' height='300' fill='%23f0f0f0'/%3E%3Ctext x='300' y='150' text-anchor='middle' font-family='Arial' font-size='18' fill='%23666'%3EYouTube画面デモ（準備中）%3C/text%3E%3C/svg%3E" alt="YouTube字幕抽出ボタンデモ">
+            <p><small>💡 YouTubeの動画プレイヤー下部に「字幕抽出」ボタンが追加されます</small></p>
+        </div>
+        
+        <!-- サーバー設定 -->
+        <div class="install-option">
+            <h3>⚙️ サーバー設定（インストール後）</h3>
+            <p>インストール後、字幕抽出サーバーのURLを設定してください：</p>
+            
+            <ul>
+                <li><strong>ローカル開発:</strong> <code>http://localhost:8085</code></li>
+                <li><strong>ngrokトンネル:</strong> <code>https://xxx.ngrok-free.app</code></li>
+                <li><strong>本番環境:</strong> <code>https://your-domain.com</code></li>
+            </ul>
+            
+            <div class="prereq">
+                <strong>Tampermonkey版:</strong> 拡張機能メニュー → 「⚙️ サーバーURL設定」<br>
+                <strong>Chrome拡張機能版:</strong> 拡張機能アイコンクリック → サーバーURL入力
+            </div>
+        </div>
+        
+        <!-- フッター -->
+        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; color: #666;">
+            <p><strong>YouTube Transcript Extractor v1.0.0</strong></p>
+            <p>開発者: YouTube Transcript Extractor Team | 最終更新: 2025-08-17</p>
+        </div>
+    </div>
+    
+    <script>
+        function downloadChromeExtension() {
+            // Chrome拡張機能のZIPダウンロード処理
+            alert('Chrome拡張機能ダウンロード機能は準備中です。\n現在はフォルダから手動インストールをお試しください。');
+        }
+        
+        function generateCRX() {
+            // CRXファイル生成処理
+            alert('CRXファイル生成機能は準備中です。\n現在はTampermonkey版の使用を推奨します。');
+        }
+        
+        // Tampermonkey用スクリプトへの直接リンク処理
+        document.querySelectorAll('a[href="./tampermonkey-userscript.js"]').forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Tampermonkeyが検出された場合の処理
+                if (typeof GM_info !== 'undefined' || window.chrome && window.chrome.extension) {
+                    // 正常にTampermonkeyページに遷移
+                    return true;
+                } else {
+                    e.preventDefault();
+                    alert('Tampermonkeyがインストールされていません。\n先に「1. Tampermonkey インストール」ボタンからインストールしてください。');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

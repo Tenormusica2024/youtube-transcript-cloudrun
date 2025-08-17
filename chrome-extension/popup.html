@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube字幕抽出</title>
+    <style>
+        body {
+            width: 350px;
+            min-height: 400px;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 0 0 15px 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3);
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .header p {
+            margin: 5px 0 0 0;
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        
+        .container {
+            padding: 0 20px 20px;
+        }
+        
+        .status-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .status-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .status-label {
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .status-value {
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        
+        .status-ok {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .status-error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .status-warning {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+        
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #cc0000 0%, #990000 100%);
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #555;
+            border: 1px solid #ddd;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .server-config {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 12px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #ff0000;
+            box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.2);
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #ff0000;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .notification {
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            text-align: center;
+        }
+        
+        .notification-success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        
+        .notification-error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+        
+        .footer {
+            text-align: center;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>YouTube字幕抽出</h1>
+        <p>AIで整形・要約</p>
+    </div>
+    
+    <div class="container">
+        <!-- 通知エリア -->
+        <div id="notification" class="notification" style="display: none;"></div>
+        
+        <!-- 現在のページ状態 -->
+        <div class="status-card">
+            <div class="status-item">
+                <span class="status-label">現在のページ</span>
+                <span id="pageStatus" class="status-value">確認中...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">動画ID</span>
+                <span id="videoId" class="status-value">-</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">サーバー接続</span>
+                <span id="serverStatus" class="status-value">確認中...</span>
+            </div>
+        </div>
+        
+        <!-- メインアクション -->
+        <div class="action-buttons">
+            <button id="extractBtn" class="btn btn-primary" disabled>
+                <span id="extractText">字幕抽出開始</span>
+            </button>
+            <button id="openToolBtn" class="btn btn-secondary">
+                字幕抽出ツールを開く
+            </button>
+        </div>
+        
+        <!-- サーバー設定 -->
+        <div class="server-config">
+            <div class="form-group">
+                <label class="form-label">サーバーURL</label>
+                <input type="text" id="serverUrl" class="form-input" value="http://localhost:8085">
+            </div>
+            <button id="testConnectionBtn" class="btn btn-secondary">
+                接続テスト
+            </button>
+        </div>
+        
+        <div class="footer">
+            YouTube Transcript Extractor v1.0.0
+        </div>
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html>

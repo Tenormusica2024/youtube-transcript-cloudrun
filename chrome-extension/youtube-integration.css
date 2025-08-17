@@ -1,0 +1,283 @@
+/**
+ * YouTube Transcript Extractor - CSS Styles
+ * YouTube UI統合用スタイル
+ */
+
+/* 字幕抽出ボタンの基本スタイル */
+.yte-transcript-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 18px;
+    background: transparent;
+    color: var(--yt-spec-text-secondary);
+    font-family: "Roboto", "Arial", sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    user-select: none;
+    position: relative;
+    z-index: 9999;
+}
+
+.yte-transcript-btn:hover {
+    background-color: var(--yt-spec-badge-chip-background);
+    color: var(--yt-spec-text-primary);
+    transform: translateY(-1px);
+}
+
+.yte-transcript-btn:active {
+    transform: translateY(0);
+    background-color: var(--yt-spec-brand-button-text);
+}
+
+/* プレイヤーコントロール内のボタン（小さめ） */
+.yte-transcript-btn-player-control {
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    backdrop-filter: blur(10px);
+}
+
+.yte-transcript-btn-player-control:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+}
+
+.yte-transcript-btn-player-control svg {
+    width: 16px;
+    height: 16px;
+}
+
+.yte-transcript-btn-player-control .yte-label {
+    font-size: 11px;
+}
+
+/* トップレベルボタンエリア内のボタン */
+.yte-transcript-btn-top-level {
+    background: var(--yt-spec-button-chip-background-hover);
+    border: 1px solid var(--yt-spec-10-percent-layer);
+    padding: 8px 14px;
+    margin: 0 4px;
+}
+
+.yte-transcript-btn-top-level:hover {
+    background: var(--yt-spec-brand-button-text);
+    color: var(--yt-spec-static-brand-white);
+}
+
+/* アクションボタンエリア内のボタン */
+.yte-transcript-btn-action {
+    background: var(--yt-spec-button-chip-background-hover);
+    border: 1px solid var(--yt-spec-10-percent-layer);
+    padding: 10px 16px;
+    margin-right: 8px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.yte-transcript-btn-action:hover {
+    background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+    color: white;
+    border-color: #ff0000;
+    box-shadow: 0 2px 8px rgba(255, 0, 0, 0.3);
+}
+
+.yte-transcript-btn-action svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* プレイヤー下部のボタン（フォールバック） */
+.yte-transcript-container {
+    display: flex;
+    justify-content: center;
+    padding: 12px 0;
+    border-top: 1px solid var(--yt-spec-10-percent-layer);
+    background: var(--yt-spec-base-background);
+}
+
+.yte-transcript-btn-below-player {
+    background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 25px;
+    font-weight: 600;
+    box-shadow: 0 3px 12px rgba(255, 0, 0, 0.3);
+}
+
+.yte-transcript-btn-below-player:hover {
+    background: linear-gradient(135deg, #cc0000 0%, #990000 100%);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(255, 0, 0, 0.4);
+}
+
+.yte-transcript-btn-below-player svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* ボタンアイコンの調整 */
+.yte-transcript-btn svg {
+    flex-shrink: 0;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.yte-transcript-btn:hover svg {
+    opacity: 1;
+}
+
+/* ラベルテキスト */
+.yte-label {
+    font-weight: inherit;
+    letter-spacing: 0.25px;
+}
+
+/* 通知システム */
+.yte-notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    z-index: 10000;
+    padding: 12px 16px;
+    border-radius: 8px;
+    color: white;
+    font-family: "Roboto", "Arial", sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    animation: slideInRight 0.3s ease-out;
+    max-width: 300px;
+}
+
+.yte-notification-info {
+    background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+}
+
+.yte-notification-success {
+    background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+}
+
+.yte-notification-error {
+    background: linear-gradient(135deg, #F44336 0%, #D32F2F 100%);
+}
+
+.yte-notification-loading {
+    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+}
+
+.yte-notification-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.yte-notification-icon {
+    font-size: 16px;
+    animation: spin 1s linear infinite;
+}
+
+.yte-notification-loading .yte-notification-icon {
+    animation: spin 1s linear infinite;
+}
+
+.yte-notification-success .yte-notification-icon,
+.yte-notification-error .yte-notification-icon,
+.yte-notification-info .yte-notification-icon {
+    animation: none;
+}
+
+/* アニメーション */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+    .yte-transcript-btn {
+        color: var(--yt-spec-text-secondary, #aaa);
+    }
+    
+    .yte-transcript-btn:hover {
+        color: var(--yt-spec-text-primary, #fff);
+        background-color: var(--yt-spec-badge-chip-background, rgba(255, 255, 255, 0.1));
+    }
+    
+    .yte-transcript-container {
+        border-top-color: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1));
+        background: var(--yt-spec-base-background, #0f0f0f);
+    }
+}
+
+/* YouTube Shorts用の調整 */
+#shorts-player .yte-transcript-btn-player-control {
+    position: absolute;
+    bottom: 120px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 20px;
+    padding: 8px 12px;
+    color: white;
+}
+
+#shorts-player .yte-transcript-btn-player-control:hover {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+/* モバイル対応 */
+@media (max-width: 768px) {
+    .yte-transcript-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+    
+    .yte-transcript-btn svg {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .yte-transcript-btn-below-player {
+        padding: 10px 20px;
+        font-size: 13px;
+    }
+    
+    .yte-notification {
+        right: 10px;
+        top: 60px;
+        max-width: 250px;
+        font-size: 13px;
+    }
+}
+
+/* 高DPI対応 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .yte-transcript-btn {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+}
