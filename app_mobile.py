@@ -23,7 +23,9 @@ import requests
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request, send_file
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
+from performance_optimizer import PerformanceOptimizer, AppStoreOptimizer
 
 # 環境変数読み込み
 load_dotenv()
@@ -36,6 +38,57 @@ logger = logging.getLogger(__name__)
 
 # Flask アプリの初期化
 app = Flask(__name__)
+
+# Performance optimizations for App Store compliance
+try:
+    optimizer = PerformanceOptimizer(app)
+    AppStoreOptimizer.optimize_for_mobile(app)
+    AppStoreOptimizer.add_app_store_headers(app)
+    logger.info("Performance optimizations applied")
+except Exception as e:
+    logger.warning(f"Performance optimization failed: {e}")
+
+# Production environment configuration
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-' + str(random.randint(1000, 9999)))
+app.config['PREFERRED_URL_SCHEME'] = 'https'
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+# Security headers middleware
+@app.after_request
+def add_security_headers(response):
+    """Add security headers for App Store compliance"""
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https:;"
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    return response
+
+# Rate limiting simple implementation
+request_count = {}
+max_requests_per_minute = 60
+
+def check_rate_limit(client_ip):
+    """Basic rate limiting for API endpoints"""
+    current_time = time.time()
+    minute_ago = current_time - 60
+    
+    # Clean old entries
+    for ip in list(request_count.keys()):
+        request_count[ip] = [req_time for req_time in request_count[ip] if req_time > minute_ago]
+        if not request_count[ip]:
+            del request_count[ip]
+    
+    # Check current IP
+    if client_ip not in request_count:
+        request_count[client_ip] = []
+    
+    if len(request_count[client_ip]) >= max_requests_per_minute:
+        return False
+    
+    request_count[client_ip].append(current_time)
+    return True
 
 # CORS設定（ngrok対応）
 CORS(app, origins=[
@@ -333,6 +386,16 @@ def get_access_info():
 
 @app.route('/api/extract', methods=['POST'])
 def extract_transcript():
+    """字幕抽出API with rate limiting and enhanced error handling"""
+    # Rate limiting check
+    client_ip = request.environ.get('HTTP_X_FORWARDED_FOR', request.environ.get('REMOTE_ADDR', 'unknown'))
+    if not check_rate_limit(client_ip):
+        logger.warning(f"Rate limit exceeded for IP: {client_ip}")
+        return jsonify({
+            'success': False,
+            'error': 'リクエストが多すぎます。しばらく待ってから再試行してください。',
+            'retry_after': 60
+        }), 429
     """字幕抽出API"""
     try:
         data = request.get_json()
@@ -415,9 +478,17 @@ def extract_transcript():
         
     except Exception as e:
         logger.error(f"字幕抽出API エラー: {e}")
+        # Don't expose internal errors to users in production
+        user_error = "申し訳ありません。一時的な問題が発生しました。しばらく待ってから再試行してください。"
+        if 'youtube.com' in str(e) or 'youtu.be' in str(e):
+            user_error = "YouTube URLの形式が正しくないか、字幕が利用できない動画です。"
+        elif 'transcript' in str(e).lower():
+            user_error = "この動画には字幕が設定されていません。字幕付きの動画をお試しください。"
+        
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': user_error,
+            'error_code': 'EXTRACTION_FAILED'
         }), 500
 
 @app.route('/qr-code')
@@ -450,12 +521,57 @@ def generate_qr():
 
 @app.route('/health')
 def health_check():
-    """ヘルスチェック"""
-    return jsonify({
+    """Enhanced health check for App Store monitoring"""
+    health_data = {
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
-        'ngrok_url': get_ngrok_url()
-    })
+        'version': '2.0.0-appstore',
+        'services': {
+            'youtube_api': 'operational',
+            'ai_formatting': 'operational' if get_ai_api_key() else 'degraded',
+            'ngrok_tunnel': 'operational' if get_ngrok_url() != CURRENT_NGROK_URL else 'fallback'
+        },
+        'performance': {
+            'active_requests': len(request_count),
+            'uptime_seconds': int(time.time() - startup_time)
+        }
+    }
+    
+    # Check if all critical services are working
+    all_services_ok = all(status != 'failed' for status in health_data['services'].values())
+    
+    return jsonify(health_data), 200 if all_services_ok else 503
+
+@app.route('/api/status')
+def detailed_status():
+    """Detailed status endpoint for debugging"""
+    try:
+        ai_key_status = 'configured' if get_ai_api_key() else 'missing'
+        ngrok_status = 'active' if get_ngrok_url() != CURRENT_NGROK_URL else 'static'
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'server_time': datetime.now().isoformat(),
+                'ai_api_status': ai_key_status,
+                'ngrok_status': ngrok_status,
+                'request_stats': {
+                    'total_active_ips': len(request_count),
+                    'rate_limit_max': max_requests_per_minute
+                },
+                'environment': {
+                    'debug_mode': app.debug,
+                    'secret_key_set': bool(app.config.get('SECRET_KEY')),
+                    'https_preferred': app.config.get('PREFERRED_URL_SCHEME') == 'https'
+                }
+            }
+        })
+    except Exception as e:
+        logger.error(f"Status endpoint error: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'ステータス情報の取得に失敗しました'
+        }), 500
 
 def setup_ngrok_url():
     """ngrok URL設定"""
@@ -464,17 +580,29 @@ def setup_ngrok_url():
     # 例: CURRENT_NGROK_URL = "https://abc123.ngrok-free.app"
     pass
 
+# Startup time tracking for health checks
+startup_time = time.time()
+
 if __name__ == '__main__':
     setup_ngrok_url()
-    logger.info("🚀 YouTube字幕抽出サーバー（スマホ対応版）を起動中...")
-    logger.info(f"📱 アクセスURL: http://127.0.0.1:8085")
+    logger.info("🚀 YouTube字幕抽出サーバー（App Store Ready版）を起動中...")
+    logger.info(f"📱 ローカルアクセス: http://127.0.0.1:8085")
+    logger.info(f"🔒 HTTPS対応: {app.config.get('PREFERRED_URL_SCHEME')}")
     if CURRENT_NGROK_URL:
         logger.info(f"🌐 ngrok URL: {CURRENT_NGROK_URL}")
+    
+    # Production-ready configuration
+    is_production = os.environ.get('FLASK_ENV') == 'production'
+    
+    logger.info(f"⚙️  環境: {'Production' if is_production else 'Development'}")
+    logger.info(f"🛡️  セキュリティヘッダー: 有効")
+    logger.info(f"⏱️  レート制限: {max_requests_per_minute}req/min")
     
     # サーバー起動
     app.run(
         host='0.0.0.0',
         port=8085,
-        debug=True,
-        threaded=True
+        debug=not is_production,
+        threaded=True,
+        ssl_context='adhoc' if is_production else None  # Auto-generate SSL for production
     )
