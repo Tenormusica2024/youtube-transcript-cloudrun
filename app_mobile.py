@@ -310,7 +310,7 @@ def extract_youtube_transcript(video_url, language_code="ja"):
         # Video IDを抽出
         parsed_url = urlparse(video_url)
         video_id = None
-        
+
         if "youtube.com" in parsed_url.netloc or "m.youtube.com" in parsed_url.netloc:
             # 通常の YouTube 動画 (/watch?v=VIDEO_ID)
             if parsed_url.path == "/watch":
@@ -333,7 +333,7 @@ def extract_youtube_transcript(video_url, language_code="ja"):
 
         if not video_id:
             raise ValueError("動画IDを取得できませんでした")
-        
+
         # Video IDにクエリパラメータが含まれている場合は除去
         video_id = video_id.split("&")[0]
 

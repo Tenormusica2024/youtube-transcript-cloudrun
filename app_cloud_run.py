@@ -78,7 +78,9 @@ def get_video_id(url):
                 return params.get("v", [None])[0]
             # YouTube Shorts (/shorts/VIDEO_ID)
             elif parsed_url.path.startswith("/shorts/"):
-                video_id = parsed_url.path.split("/shorts/")[1].split("?")[0].split("&")[0]
+                video_id = (
+                    parsed_url.path.split("/shorts/")[1].split("?")[0].split("&")[0]
+                )
                 logger.info(f"YouTube Shorts動画を検出: {video_id}")
                 return video_id
             # Embed形式 (/embed/VIDEO_ID)
