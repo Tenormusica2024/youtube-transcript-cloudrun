@@ -132,11 +132,37 @@ def format_transcript_text(original_text):
     
     text = original_text
     
-    # Phase 1: 基本的なクリーニング
+    # Phase 1: 基本的なクリーニングとフィラー除去
     # 不要な記号や文字の除去
     text = re.sub(r'[\u266a\u266b\u266c\u266d\u266e\u266f]', '', text)  # 音楽記号削除
     text = re.sub(r'\[音楽\]|\[Music\]|\[♪\]', '', text)
     text = re.sub(r'^\s*[\[\(].*?[\]\)]\s*', '', text, flags=re.MULTILINE)  # [拍手]等の除去
+    
+    # フィラー語・いいよどみの除去（日本語・英語対応）
+    fillers_to_remove = [
+        # 日本語のフィラー語
+        r'\bえ[ー〜～]*[、。\s]*', r'\bま[ー〜～]*[、。\s]*', r'\bうん[、。\s]*', r'\bあの[ー〜～]*[、。\s]*',
+        r'\bその[ー〜～]*[、。\s]*', r'\bこの[ー〜～]*[、。\s]*', r'\bなんか[、。\s]*',
+        r'\bっていうか[、。\s]*', r'\bみたいな[、。\s]*', r'\bっていう[、。\s]*',
+        r'\bまあ[、。\s]*', r'\bそう[ー〜～]*[、。\s]*', r'\bはい[、。\s]*',
+        r'\bええ[ー〜～]*[、。\s]*', r'\bああ[ー〜～]*[、。\s]*',
+        # いいよどみパターン
+        r'[、。]*[あ-ん][ー〜～]+[、。\s]*', r'[、。]*[う]*ん[ー〜～]*[、。\s]*',
+        # 英語のフィラー語
+        r'\bum[,.\s]*', r'\buh[,.\s]*', r'\buhhh*[,.\s]*', r'\bwell[,.\s]*',
+        r'\byou know[,.\s]*', r'\blike[,.\s]*', r'\bI mean[,.\s]*',
+        r'\bso[,.\s]*', r'\bokay[,.\s]*', r'\bOK[,.\s]*', r'\byeah[,.\s]*',
+        # 重複語句の除去
+        r'(\b\w+)\s+\1\b', r'([あ-ん一-龯]+)\s+\1'
+    ]
+    
+    for pattern in fillers_to_remove:
+        text = re.sub(pattern, ' ', text, flags=re.IGNORECASE)
+    
+    # 連続する句読点や空白の整理
+    text = re.sub(r'[、。]{2,}', '。', text)
+    text = re.sub(r'\s{2,}', ' ', text)
+    text = re.sub(r'[,]{2,}', ',', text)
     
     # Phase 2: 話題区切り重視の適度な改行処理（日英両対応）
     # 話題転換を示すキーワードでの改行
@@ -180,9 +206,13 @@ def format_transcript_text(original_text):
         'インターネット': 'ネット', 'コンピューター': 'コンピュータ',
         'データベース': 'DB', 'プログラミング': 'プログラム',
         
-        # 口語・話し言葉の自然化
-        'っていうか': 'というか', 'みたいな': 'のような',
-        'やっぱり': 'やはり', 'めっちゃ': 'とても',
+        # 口語・話し言葉の自然化（フィラー除去後の修正）
+        'やっぱり': 'やはり', 'めっちゃ': 'とても', 'すごく': 'とても',
+        'ぶっちゃけ': '率直に言うと', 'マジで': '本当に', 'ガチで': '本当に',
+        'チョー': 'とても', 'ヤバい': '大変', 'ビビる': '驚く',
+        # 冗長表現の簡潔化
+        '〜ということになります': '〜です', '〜ということです': '〜です',
+        '〜というふうに': '〜のように', '〜といった感じ': '〜など',
     }
     
     for wrong, correct in corrections.items():
@@ -244,6 +274,14 @@ def format_transcript_text(original_text):
     # Phase 6: 最終整形と品質向上
     formatted = '\n'.join(structured_lines)
     
+    # フィラー除去後の追加クリーニング
+    # 残存する不自然な文頭・文末の整理
+    formatted = re.sub(r'^\s*[。、,\s]+', '', formatted, flags=re.MULTILINE)  # 行頭の不自然な句読点
+    formatted = re.sub(r'[。、,\s]+$', '', formatted, flags=re.MULTILINE)    # 行末の不自然な句読点
+    
+    # 空白行が多すぎる場合の調整
+    formatted = re.sub(r'\n\s*\n\s*\n', '\n\n', formatted)  # 3連続改行を2つに
+    
     # 可読性重視の空行整理（より寛容に）
     formatted = re.sub(r'\n{6,}', '\n\n\n\n\n', formatted)  # 連続空行は最大5つまで
     formatted = re.sub(r'^\n+', '', formatted)  # 先頭の空行削除
@@ -254,6 +292,11 @@ def format_transcript_text(original_text):
     
     # 読みやすさ向上のための微調整
     formatted = re.sub(r'([。！？])([あ-んア-ン一-龯])', r'\1 \2', formatted)  # 句読点後にスペース
+    
+    # フィラー除去による空文の削除
+    lines = formatted.split('\n')
+    clean_lines = [line for line in lines if line.strip()]
+    formatted = '\n'.join(clean_lines)
     
     return formatted.strip()
 
