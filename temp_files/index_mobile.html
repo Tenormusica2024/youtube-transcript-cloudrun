@@ -15,7 +15,7 @@
             --youtube-red-dark: #cc0000;
             --youtube-red-light: #ff4757;
             --youtube-red-lighter: #ff6b7a;
-            --youtube-gradient: linear-gradient(to right, #ff0000, #ff3542);
+            --youtube-gradient: linear-gradient(to right, #ff0000, #ff6b7a);
         }
         
         * {
@@ -89,22 +89,6 @@
         
         .navbar-brand i {
             font-size: 1.3rem;
-        }
-        
-        .btn-cache-clear {
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            color: rgba(255, 255, 255, 0.9);
-            background: rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
-            font-size: 0.85rem;
-            padding: 0.4rem 0.8rem;
-        }
-        
-        .btn-cache-clear:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.8);
-            color: white;
-            transform: translateY(-1px);
         }
         
         .container-mobile {
@@ -411,10 +395,6 @@
                 <i class="bi bi-youtube"></i>
                 YouTube字幕抽出ツール
             </span>
-            <button type="button" class="btn btn-cache-clear" onclick="forceClearCache()" 
-                    title="ページを強制更新してキャッシュをクリア">
-                <i class="bi bi-arrow-clockwise"></i> 強制更新
-            </button>
         </div>
     </nav>
     
@@ -467,7 +447,7 @@
                 <!-- Version display at bottom -->
                 <div class="text-center mt-4">
                     <small class="text-muted" style="font-size: 0.75rem;">
-                        <i class="bi bi-info-circle"></i> <span id="versionDisplay">v1.3.11-gradient-red</span>
+                        <i class="bi bi-info-circle"></i> v1.3.0-gradient-red
                     </small>
                 </div>
                 
@@ -577,11 +557,6 @@
             const btnSpinner = document.getElementById('btnSpinner');
             const extractBtn = document.getElementById('extractBtn');
             
-            if (!url.trim()) {
-                showError('YouTube URLを入力してください');
-                return;
-            }
-            
             // UI状態更新
             btnText.textContent = '処理中...';
             btnSpinner.style.display = 'inline-block';
@@ -591,76 +566,25 @@
             document.getElementById('resultSection').style.display = 'none';
             document.getElementById('errorSection').style.display = 'none';
             
-            // 詳細なデバッグログを追加
             try {
-                console.log('[DEBUG] Starting server connection process...');
-                console.log('[DEBUG] API_BASE:', API_BASE);
-                console.log('[DEBUG] URL to extract:', url);
-                console.log('[DEBUG] Language:', lang);
+                const response = await fetch(`${API_BASE}/api/extract`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url, lang, generate_summary: true })
+                });
                 
-                // サーバーURLを同一オリジンに修正
-                const serverUrls = [
-                    `${API_BASE}/api/extract`,
-                    '/api/extract'
-                ];
+                const data = await response.json();
                 
-                console.log('[DEBUG] Server URLs to try:', serverUrls);
-                
-                let success = false;
-                let data = null;
-                
-                for (const serverUrl of serverUrls) {
-                    try {
-                        console.log('[DEBUG] Attempting connection to:', serverUrl);
-                        
-                        const requestBody = JSON.stringify({ url, lang, generate_summary: true });
-                        console.log('[DEBUG] Request body:', requestBody);
-                        
-                        const response = await fetch(serverUrl, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: requestBody
-                        });
-                        
-                        console.log('[DEBUG] Response status:', response.status);
-                        console.log('[DEBUG] Response ok:', response.ok);
-                        
-                        if (response.ok) {
-                            data = await response.json();
-                            success = true;
-                            console.log('[SUCCESS] Server connected successfully:', serverUrl);
-                            console.log('[DEBUG] Response data:', data);
-                            break;
-                        } else {
-                            console.log('[ERROR] Response not ok:', response.status, response.statusText);
-                        }
-                    } catch (serverError) {
-                        console.log('[ERROR] Server connection failed:', serverUrl, serverError);
-                        console.log('[ERROR] Error details:', serverError.message);
-                        continue;
-                    }
-                }
-                
-                if (success && data && data.success) {
-                    console.log('[SUCCESS] Processing successful response');
-                    // バージョン更新
-                    updateVersionDisplay();
+                if (data.success) {
                     // 結果表示
                     displayResults(data);
-                } else if (success && data) {
-                    console.log('[ERROR] Server returned error:', data.error);
-                    showError(data.error || '字幕の抽出に失敗しました');
                 } else {
-                    console.log('[WARN] No successful connection, showing demo');
-                    // サーバーが利用できない場合のデモ表示
-                    showDemoResults(url, lang);
+                    showError(data.error || '字幕の抽出に失敗しました');
                 }
             } catch (error) {
-                console.error('[CRITICAL] All servers failed:', error);
-                console.error('[CRITICAL] Error stack:', error.stack);
-                showDemoResults(url, lang);
+                showError('サーバーとの通信エラーが発生しました');
             } finally {
                 btnText.textContent = '字幕を抽出';
                 btnSpinner.style.display = 'none';
@@ -668,65 +592,17 @@
             }
         });
         
-        function showDemoResults(url, lang) {
-            console.log('Showing demo results for:', url);
-            
-            // デモ用データ
-            const demoData = {
-                success: true,
-                title: 'YouTube動画 (デモ)',
-                transcript: 'こんにちは、皆さん。\n\n今日は素晴らしい一日ですね。\n\nYouTube字幕抽出ツールのデモンストレーションをご覧いただき、ありがとうございます。\n\nこのツールは以下の機能を提供します：\n・YouTube動画の字幕を自動抽出\n・AIによる要約生成\n・テキストの整形と誤変換修正\n・多言語対応\n\n実際のサーバーが利用可能になると、より高度な機能をお使いいただけます。',
-                original_transcript: 'こんにちは、皆さん。今日は素晴らしい一日ですね。YouTube字幕抽出ツールのデモンストレーションをご覧いただき、ありがとうございます。このツールは以下の機能を提供します：YouTube動画の字幕を自動抽出、AIによる要約生成、テキストの整形と誤変換修正、多言語対応。実際のサーバーが利用可能になると、より高度な機能をお使いいただけます。',
-                summary: '🤖 AI要約 (デモモード):\n\nYouTube字幕抽出ツールのデモンストレーション動画です。主要な機能として字幕自動抽出、AI要約生成、テキスト整形、多言語対応が紹介されています。\n\n---\n📊 分析情報:\n・ 動画URL: ' + url + '\n・ 元テキスト文字数: 123文字\n・ 処理時刻: ' + new Date().toTimeString().split(' ')[0] + '\n・ 言語設定: ' + lang.toUpperCase() + '\n・ 状態: デモモード（サーバー接続待機中）',
-                stats: {
-                    segments: 15,
-                    characters: 123,
-                    language: lang.toUpperCase(),
-                    transcript_type: 'Demo'
-                },
-                version: 'v1.3.11-gradient-red-demo-' + new Date().getHours().toString().padStart(2, '0') + new Date().getMinutes().toString().padStart(2, '0'),
-                server_time: new Date().toLocaleString(),
-                cache_cleared: 'demo'
-            };
-            
-            displayResults(demoData);
-            
-            // サーバー接続情報を表示
-            setTimeout(() => {
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-info alert-custom';
-                alertDiv.innerHTML = `
-                    <i class="bi bi-info-circle"></i> 
-                    <strong>デモモード:</strong> サーバーに接続できませんでした。
-                    <br>実際のサーバーは以下のURLで確認できます：
-                    <br>• <a href="http://127.0.0.1:8085" target="_blank">http://127.0.0.1:8085</a>
-                    <br>• <a href="http://127.0.0.1:8089" target="_blank">http://127.0.0.1:8089</a>
-                    <br>• <a href="http://127.0.0.1:8088" target="_blank">http://127.0.0.1:8088</a>
-                `;
-                document.querySelector('.card-body-custom').prepend(alertDiv);
-                
-                setTimeout(() => alertDiv.remove(), 10000);
-            }, 1000);
-        }
-        
         function displayResults(data) {
             // Video info
             document.getElementById('videoTitle').textContent = data.title || 'YouTube動画';
-            
-            // バージョン情報とキャッシュ情報を表示
-            const versionInfo = `${data.version || 'v1.3.11'} | ${data.server_time || ''} | キャッシュ: ${data.cache_cleared || 'none'}`;
-            if (document.getElementById('versionInfo')) {
-                document.getElementById('versionInfo').textContent = versionInfo;
-            }
             document.getElementById('versionInfo').textContent = data.version || '';
             
-            // Stats - 詳細情報を含む
+            // Stats
             document.getElementById('segmentCount').textContent = data.stats?.segments || '-';
             document.getElementById('charCount').textContent = 
                 data.stats?.characters ? `${(data.stats.characters / 1000).toFixed(1)}K` : '-';
             document.getElementById('langDisplay').textContent = 
-                (data.stats?.language?.toUpperCase() || '-') + 
-                (data.stats?.transcript_type ? ` (${data.stats.transcript_type})` : '');
+                data.stats?.language?.toUpperCase() || '-';
             
             // Transcripts
             document.getElementById('formattedTranscript').textContent = 
@@ -798,70 +674,6 @@
             }
             
             modal.show();
-        }
-        
-        // バージョン情報を動的更新
-        function updateVersionDisplay() {
-            const now = new Date();
-            const timestamp = now.getHours().toString().padStart(2, '0') + 
-                            now.getMinutes().toString().padStart(2, '0');
-            const seconds = now.getSeconds().toString().padStart(2, '0');
-            const versionElement = document.getElementById('versionDisplay');
-            if (versionElement) {
-                versionElement.textContent = `v1.3.11-gradient-red-${timestamp}:${seconds}`;
-            }
-        }
-        
-        // キャッシュ状態をチェック
-        function checkCacheStatus() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const cacheParam = urlParams.get('cache');
-            if (cacheParam) {
-                console.log('Cache cleared with timestamp:', cacheParam);
-                // キャッシュクリア成功メッセージを表示
-                setTimeout(() => {
-                    const alertDiv = document.createElement('div');
-                    alertDiv.className = 'alert alert-success alert-custom';
-                    alertDiv.innerHTML = `<i class="bi bi-check-circle"></i> キャッシュクリア成功 (${cacheParam})`;
-                    document.querySelector('.card-body-custom').prepend(alertDiv);
-                    setTimeout(() => alertDiv.remove(), 3000);
-                }, 100);
-            }
-            return cacheParam;
-        }
-        
-        // ページロード時の初期化
-        document.addEventListener('DOMContentLoaded', function() {
-            updateVersionDisplay();
-            checkCacheStatus();
-            // 5秒ごとにバージョン更新 (秒単位表示)
-            setInterval(updateVersionDisplay, 5000);
-        });
-        
-        // 強制キャッシュクリア機能
-        function forceClearCache() {
-            // バージョン更新
-            updateVersionDisplay();
-            
-            // 詳細なタイムスタンプを追加してキャッシュを無効化
-            const now = new Date();
-            const timestamp = now.getTime();
-            const readableTime = now.toTimeString().split(' ')[0]; // HH:MM:SS
-            const currentUrl = window.location.href.split('?')[0];
-            const newUrl = `${currentUrl}?cache=${timestamp}&time=${readableTime}`;
-            
-            console.log('Force clearing cache with timestamp:', timestamp, 'readable:', readableTime);
-            
-            // アニメーション付きでボタンを回転
-            const btn = event.target.closest('button');
-            btn.style.transform = 'rotate(360deg)';
-            btn.style.transition = 'transform 0.5s ease';
-            btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> クリア中...';
-            
-            // 少し遅延してからページをリロード
-            setTimeout(() => {
-                window.location.href = newUrl;
-            }, 500);
         }
     </script>
 </body>

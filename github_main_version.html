@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Transcript Extractor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #ff0000;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #cc0000;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #result {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+        .hidden {
+            display: none;
+        }
+        .error {
+            color: #ff0000;
+            background-color: #ffe6e6;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ffcccc;
+        }
+        .success {
+            color: #008000;
+            background-color: #e6ffe6;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccffcc;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+            resize: vertical;
+        }
+        .version-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff0000;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="version-badge">GitHub Main版</div>
+    <div class="container">
+        <h1>YouTube Transcript Extractor</h1>
+        <p style="text-align: center; color: #666; font-style: italic;">シンプル安定版 - GitHub Mainブランチ</p>
+        
+        <form id="extractForm">
+            <div class="form-group">
+                <label for="url">YouTube URL:</label>
+                <input type="text" id="url" name="url" placeholder="https://www.youtube.com/watch?v=..." required>
+            </div>
+            
+            <div class="form-group">
+                <label for="lang">言語:</label>
+                <select id="lang" name="lang">
+                    <option value="ja">日本語</option>
+                    <option value="en">English</option>
+                    <option value="ko">한국어</option>
+                    <option value="zh">中文</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="format">出力フォーマット:</label>
+                <select id="format" name="format">
+                    <option value="txt">テキスト</option>
+                    <option value="json">JSON</option>
+                    <option value="srt">SRT (字幕ファイル)</option>
+                </select>
+            </div>
+            
+            <button type="submit" id="submitBtn">字幕を抽出</button>
+        </form>
+        
+        <div id="result" class="hidden">
+            <h2>結果</h2>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+</body>
+</html>

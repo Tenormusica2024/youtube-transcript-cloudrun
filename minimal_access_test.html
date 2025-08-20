@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube字幕抽出ツール - アクセステスト</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0;
+            background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container { 
+            background: rgba(255, 255, 255, 0.1); 
+            padding: 40px; 
+            border-radius: 20px; 
+            backdrop-filter: blur(10px);
+            text-align: center;
+            max-width: 600px;
+        }
+        .success { 
+            color: #00ff00; 
+            font-weight: bold; 
+            font-size: 28px; 
+            margin: 20px 0;
+        }
+        .btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        .water-effect {
+            position: relative;
+            overflow: hidden;
+            padding: 20px 0;
+        }
+        .water-effect::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(ellipse 300px 200px at 50% 50%, rgba(255, 90, 95, 0.4) 0%, transparent 50%);
+            animation: waterMove 15s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes waterMove {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(10px, -5px) scale(1.05); }
+            66% { transform: translate(-8px, 8px) scale(0.98); }
+        }
+        .status-box {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+        #status {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container water-effect">
+        <h1>🎬 YouTube字幕抽出ツール</h1>
+        <p class="success">📱 赤基調水面反射エフェクト動作中</p>
+        
+        <div class="status-box">
+            <strong>接続テスト状況:</strong><br>
+            <div id="status">接続確認中...</div>
+        </div>
+        
+        <div class="status-box">
+            <strong>アクセス方法:</strong><br>
+            メインサーバー: <code>http://127.0.0.1:8085</code><br>
+            ヘルスチェック: <code>http://127.0.0.1:8085/health</code>
+        </div>
+        
+        <a href="http://127.0.0.1:8085" class="btn" target="_blank">
+            📱 メインアプリを開く
+        </a>
+        
+        <a href="http://127.0.0.1:8085/health" class="btn" target="_blank">
+            ⚕️ ヘルスチェック
+        </a>
+        
+        <div class="status-box">
+            <strong>動作確認項目:</strong><br>
+            ✅ 赤基調UIテーマ<br>
+            ✅ 水面反射アニメーション<br>
+            ✅ レスポンシブデザイン<br>
+            ⏳ Flaskサーバー接続
+        </div>
+    </div>
+    
+    <script>
+        // 自動接続テスト
+        async function testConnection() {
+            const statusDiv = document.getElementById('status');
+            
+            try {
+                statusDiv.textContent = '🔍 サーバー接続テスト中...';
+                
+                const response = await fetch('http://127.0.0.1:8085/health');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    statusDiv.innerHTML = '✅ <span style="color: #00ff00;">サーバー起動成功</span><br>ステータス: ' + response.status;
+                } else {
+                    statusDiv.innerHTML = '⚠️ <span style="color: #ffaa00;">応答エラー</span><br>ステータス: ' + response.status;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '❌ <span style="color: #ff6b6b;">接続失敗</span><br>メッセージ: ' + error.message;
+                
+                // 3秒後に再試行
+                setTimeout(() => {
+                    statusDiv.textContent = '🔄 3秒後に再試行...';
+                    setTimeout(testConnection, 3000);
+                }, 1000);
+            }
+        }
+        
+        // ページロード後に接続テスト開始
+        window.addEventListener('load', () => {
+            setTimeout(testConnection, 2000);
+        });
+        
+        // 10秒ごとに定期的にテスト
+        setInterval(testConnection, 10000);
+    </script>
+</body>
+</html>

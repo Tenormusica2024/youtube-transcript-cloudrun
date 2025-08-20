@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube字幕抽出ツール - スタンドアロン版</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .status-indicator {
+            text-align: center;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .status-checking {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status-online {
+            background: #d4edda;
+            color: #155724;
+        }
+        .form-group {
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .secondary-btn {
+            background: #6c757d;
+        }
+        .secondary-btn:hover {
+            box-shadow: 0 5px 15px rgba(108, 117, 125, 0.4);
+        }
+        #result {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #dee2e6;
+        }
+        .hidden {
+            display: none;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #f5c6cb;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #c3e6cb;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 400px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+        .copy-btn {
+            background: #28a745;
+            padding: 8px 16px;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .copy-btn:hover {
+            box-shadow: 0 3px 10px rgba(40, 167, 69, 0.4);
+        }
+        .server-config {
+            background: #e8f4ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #b8daff;
+        }
+        .server-config h3 {
+            margin-top: 0;
+            color: #004085;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .stat-item {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 YouTube字幕抽出ツール</h1>
+        <p class="subtitle">YouTube動画の字幕を抽出・AI要約</p>
+        
+        <div id="statusIndicator" class="status-indicator status-checking">
+            接続状態を確認中...
+        </div>
+        
+        <div class="server-config">
+            <h3>⚙️ サーバー設定</h3>
+            <div class="form-group">
+                <label for="serverUrl">サーバーURL:</label>
+                <input type="text" id="serverUrl" value="http://localhost:8080" placeholder="http://localhost:8080">
+                <button onclick="testConnection()" style="margin-top: 10px">接続テスト</button>
+            </div>
+        </div>
+        
+        <form id="extractForm">
+            <div class="form-group">
+                <label for="url">YouTube URL:</label>
+                <input type="text" id="url" name="url" placeholder="https://www.youtube.com/watch?v=..." required>
+            </div>
+            
+            <div class="form-group">
+                <label for="lang">言語:</label>
+                <select id="lang" name="lang">
+                    <option value="ja">日本語</option>
+                    <option value="en">English</option>
+                    <option value="ko">한국어</option>
+                    <option value="zh">中文</option>
+                    <option value="auto">自動検出</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="format">出力フォーマット:</label>
+                <select id="format" name="format">
+                    <option value="txt">テキスト（AI整形付き）</option>
+                    <option value="json">JSON</option>
+                    <option value="srt">SRT (字幕ファイル)</option>
+                </select>
+            </div>
+            
+            <div class="button-group">
+                <button type="submit" id="submitBtn">字幕を抽出</button>
+                <button type="button" class="secondary-btn" onclick="clearForm()">クリア</button>
+            </div>
+        </form>
+        
+        <div id="result" class="hidden">
+            <h2>📊 抽出結果</h2>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let serverUrl = 'http://localhost:8080';
+        
+        // ページ読み込み時に接続テスト
+        window.addEventListener('load', () => {
+            testConnection();
+        });
+        
+        function updateServerUrl() {
+            serverUrl = document.getElementById('serverUrl').value;
+            localStorage.setItem('youtube_transcript_server', serverUrl);
+        }
+        
+        function testConnection() {
+            const statusIndicator = document.getElementById('statusIndicator');
+            statusIndicator.className = 'status-indicator status-checking';
+            statusIndicator.textContent = '接続確認中...';
+            
+            updateServerUrl();
+            
+            fetch(`${serverUrl}/health`, { method: 'GET' })
+                .then(response => response.json())
+                .then(data => {
+                    statusIndicator.className = 'status-indicator status-online';
+                    statusIndicator.textContent = '✅ サーバー接続成功';
+                })
+                .catch(error => {
+                    statusIndicator.className = 'status-indicator status-offline';
+                    statusIndicator.textContent = '❌ サーバーに接続できません。start_app.batを実行してください。';
+                });
+        }
+        
+        function clearForm() {
+            document.getElementById('extractForm').reset();
+            document.getElementById('result').classList.add('hidden');
+        }
+        
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('クリップボードにコピーしました！');
+            });
+        }
+        
+        document.getElementById('extractForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            updateServerUrl();
+            
+            const form = e.target;
+            const submitBtn = document.getElementById('submitBtn');
+            const result = document.getElementById('result');
+            const resultContent = document.getElementById('resultContent');
+            
+            // ボタンを無効化
+            submitBtn.disabled = true;
+            submitBtn.textContent = '処理中...';
+            
+            // 結果エリアを表示
+            result.classList.remove('hidden');
+            resultContent.innerHTML = '<div class="loading">🔄 字幕を取得中... これには1-2分かかる場合があります。</div>';
+            
+            try {
+                const formData = new FormData(form);
+                const data = {
+                    url: formData.get('url'),
+                    lang: formData.get('lang'),
+                    format: formData.get('format')
+                };
+                
+                const response = await fetch(`${serverUrl}/extract`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result_data = await response.json();
+                
+                if (result_data.success) {
+                    const stats = result_data.stats || {};
+                    const transcript = result_data.formatted_transcript || result_data.transcript || '';
+                    const summary = result_data.summary || '';
+                    
+                    resultContent.innerHTML = `
+                        <div class="success">
+                            <h3>✅ 抽出成功！</h3>
+                        </div>
+                        
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value">${stats.segments || stats.total_segments || '-'}</div>
+                                <div class="stat-label">セグメント数</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">${stats.characters || stats.total_characters || '-'}</div>
+                                <div class="stat-label">文字数</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value">${stats.language || data.lang}</div>
+                                <div class="stat-label">言語</div>
+                            </div>
+                        </div>
+                        
+                        <h3>📄 ${result_data.title || 'YouTube動画'}</h3>
+                        
+                        <h4>字幕テキスト：</h4>
+                        <textarea id="transcriptText" readonly>${transcript}</textarea>
+                        <button class="copy-btn" onclick="copyToClipboard(document.getElementById('transcriptText').value)">
+                            📋 字幕をコピー
+                        </button>
+                        
+                        ${summary ? `
+                        <h4 style="margin-top: 30px;">🤖 AI要約：</h4>
+                        <textarea id="summaryText" readonly style="height: 250px; background: #f0f8ff;">${summary}</textarea>
+                        <button class="copy-btn" onclick="copyToClipboard(document.getElementById('summaryText').value)">
+                            📋 要約をコピー
+                        </button>
+                        ` : ''}
+                    `;
+                } else {
+                    resultContent.innerHTML = `
+                        <div class="error">
+                            <h3>❌ エラーが発生しました</h3>
+                            <p>${result_data.error}</p>
+                            <p style="margin-top: 10px;">
+                                <strong>対処法：</strong><br>
+                                1. サーバーが起動しているか確認してください<br>
+                                2. YouTubeのURLが正しいか確認してください<br>
+                                3. 動画に字幕が存在するか確認してください
+                            </p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultContent.innerHTML = `
+                    <div class="error">
+                        <h3>❌ 通信エラー</h3>
+                        <p>${error.message}</p>
+                        <p style="margin-top: 10px;">
+                            <strong>サーバーが起動していない可能性があります。</strong><br>
+                            1. <code>start_app.bat</code>をダブルクリックして実行<br>
+                            2. コマンドプロンプトで "Starting YouTube Transcript Extractor App..." が表示されるまで待つ<br>
+                            3. 再度「字幕を抽出」ボタンをクリック
+                        </p>
+                    </div>
+                `;
+            } finally {
+                // ボタンを再有効化
+                submitBtn.disabled = false;
+                submitBtn.textContent = '字幕を抽出';
+            }
+        });
+        
+        // 保存されたサーバーURLを復元
+        const savedUrl = localStorage.getItem('youtube_transcript_server');
+        if (savedUrl) {
+            document.getElementById('serverUrl').value = savedUrl;
+            serverUrl = savedUrl;
+        }
+    </script>
+</body>
+</html>

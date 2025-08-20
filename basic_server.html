@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基本HTTPサーバー - ポート解放確認</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+            background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);
+            color: white;
+            text-align: center;
+        }
+        .container { 
+            background: rgba(255, 255, 255, 0.1); 
+            padding: 30px; 
+            border-radius: 15px; 
+            backdrop-filter: blur(10px);
+        }
+        .success { 
+            color: #00ff00; 
+            font-weight: bold; 
+            font-size: 24px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 YouTube字幕抽出ツール</h1>
+        <p class="success">✅ HTTPサーバー起動成功</p>
+        <p><strong>ポート解放:</strong> 正常</p>
+        <p><strong>時刻:</strong> <span id="time"></span></p>
+        <p><strong>次のステップ:</strong> FlaskサーバーでYouTube機能を追加</p>
+    </div>
+    
+    <script>
+        function updateTime() {
+            document.getElementById('time').textContent = new Date().toLocaleString('ja-JP');
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+    </script>
+</body>
+</html>

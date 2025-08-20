@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API接続テスト</title>
+</head>
+<body>
+    <h1>API接続テスト</h1>
+    <button onclick="testAPI()">APIテスト実行</button>
+    <div id="result"></div>
+    
+    <script>
+    async function testAPI() {
+        const result = document.getElementById('result');
+        result.innerHTML = '接続テスト中...';
+        
+        try {
+            const response = await fetch('http://127.0.0.1:8085/api/extract', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+                    lang: 'en',
+                    generate_summary: true
+                })
+            });
+            
+            const data = await response.json();
+            result.innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        } catch (error) {
+            result.innerHTML = 'エラー: ' + error.message;
+        }
+    }
+    </script>
+</body>
+</html>

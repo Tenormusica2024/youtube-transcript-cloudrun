@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Transcript Extractor - 字幕取得＝各PC・整形/要約＝Cloud Run</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.2em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+        .version-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        /* タブスタイル */
+        .tab-container {
+            margin-bottom: 30px;
+        }
+        .tab-buttons {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+        .tab-button {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            background: #f8f8f8;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+            border-radius: 8px 8px 0 0;
+            margin-right: 2px;
+        }
+        .tab-button:last-child {
+            margin-right: 0;
+        }
+        .tab-button.active {
+            background: #667eea;
+            color: white;
+        }
+        .tab-button:hover:not(.active) {
+            background: #e8e8e8;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 0 8px 8px 8px;
+            background: #fafafa;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"], select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        textarea {
+            height: 200px;
+            resize: vertical;
+            font-family: monospace;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .demo-content {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 18px;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="version-badge">Stash復元版 - 最新デザイン</div>
+    <div class="container">
+        <h1>YouTube Transcript Extractor</h1>
+        <div class="subtitle">最新デザイン修正版 - タブ形式インターフェース</div>
+        
+        <div class="tab-container">
+            <div class="tab-buttons">
+                <button class="tab-button active" onclick="showTab('url-extract')">URL抽出</button>
+                <button class="tab-button" onclick="showTab('text-paste')">テキスト貼付</button>
+                <button class="tab-button" onclick="showTab('features')">機能一覧</button>
+            </div>
+            
+            <div id="url-extract" class="tab-content active">
+                <form id="urlForm">
+                    <div class="form-group">
+                        <label for="url">YouTube URL:</label>
+                        <input type="text" id="url" name="url" placeholder="https://www.youtube.com/watch?v=..." required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="lang">言語:</label>
+                        <select id="lang" name="lang">
+                            <option value="ja">日本語</option>
+                            <option value="en">English</option>
+                            <option value="ko">한국어</option>
+                            <option value="zh">中文</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="format">出力フォーマット:</label>
+                        <select id="format" name="format">
+                            <option value="txt">AI整形テキスト</option>
+                            <option value="json">JSON</option>
+                            <option value="srt">SRT字幕</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit">字幕を抽出</button>
+                </form>
+            </div>
+            
+            <div id="text-paste" class="tab-content">
+                <form id="textForm">
+                    <div class="form-group">
+                        <label for="transcript_text">字幕テキスト:</label>
+                        <textarea id="transcript_text" name="transcript_text" placeholder="YouTubeからコピーした字幕テキストをここに貼り付けてください..." required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="text_lang">言語:</label>
+                        <select id="text_lang" name="lang">
+                            <option value="ja">日本語</option>
+                            <option value="en">English</option>
+                            <option value="ko">한국어</option>
+                            <option value="zh">中文</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit">AI整形・要約を実行</button>
+                </form>
+            </div>
+            
+            <div id="features" class="tab-content">
+                <div class="demo-content">
+                    <h3>🚀 最新機能一覧</h3>
+                    <ul class="feature-list">
+                        <li>URL直接抽出とテキスト貼付の両対応</li>
+                        <li>Gemini 2.0 Flash による AI 整形</li>
+                        <li>詳細な要約生成機能</li>
+                        <li>多言語対応（日本語・英語・韓国語・中国語）</li>
+                        <li>SRT字幕ファイル出力</li>
+                        <li>タブ形式の直感的UI</li>
+                        <li>レスポンシブデザイン</li>
+                        <li>グラデーション背景の美しいデザイン</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // すべてのタブを非表示
+            const contents = document.querySelectorAll('.tab-content');
+            contents.forEach(content => content.classList.remove('active'));
+            
+            // すべてのタブボタンを非アクティブ
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(button => button.classList.remove('active'));
+            
+            // 指定されたタブを表示
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

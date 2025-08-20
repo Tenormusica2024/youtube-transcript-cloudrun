@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube字幕抽出ツール - スマホ版 テスト</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <style>
+        :root {
+            --youtube-red: #ff0000;
+            --youtube-red-dark: #cc0000;
+            --youtube-red-light: #ff4757;
+            --youtube-red-lighter: #ff6b7a;
+            --youtube-gradient: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+            min-height: 100vh;
+            padding-bottom: 60px;
+        }
+        
+        /* Navbar with water reflection effect - YouTube Red version */
+        .navbar {
+            background: var(--youtube-gradient);
+            padding: 1rem;
+            box-shadow: 0 4px 20px rgba(255, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .navbar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 200%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse 280px 180px at 40% 30%, rgba(255, 90, 95, 0.3) 0%, transparent 40%),
+                radial-gradient(ellipse 200px 140px at 70% 60%, rgba(255, 100, 100, 0.25) 0%, transparent 45%),
+                radial-gradient(ellipse 240px 160px at 20% 80%, rgba(255, 95, 105, 0.2) 0%, transparent 50%);
+            animation: navbarWaterReflection 20s ease-in-out infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes navbarWaterReflection {
+            0%, 100% {
+                transform: translateX(0) scale(1);
+                opacity: 0.6;
+            }
+            25% {
+                transform: translateX(10%) scale(1.05);
+                opacity: 0.8;
+            }
+            50% {
+                transform: translateX(-5%) scale(0.98);
+                opacity: 0.7;
+            }
+            75% {
+                transform: translateX(15%) scale(1.02);
+                opacity: 0.9;
+            }
+        }
+        
+        .navbar-brand {
+            color: white !important;
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1;
+            position: relative;
+        }
+        
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            margin: 1rem;
+            overflow: hidden;
+        }
+        
+        .card-header-custom {
+            background: linear-gradient(135deg, #ff6b7a 0%, #ff4757 100%);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        .card-body-custom {
+            padding: 1.5rem;
+        }
+        
+        .status-card {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border-left: 4px solid #28a745;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem;
+        }
+        
+        .server-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar with water reflection effect -->
+    <nav class="navbar">
+        <div class="container-fluid">
+            <span class="navbar-brand">
+                <i class="bi bi-youtube"></i>
+                YouTube字幕抽出ツール - スマホ版復元確認
+            </span>
+        </div>
+    </nav>
+    
+    <!-- Status Card -->
+    <div class="status-card">
+        <h4><i class="bi bi-check-circle-fill text-success"></i> 復元完了</h4>
+        <p class="mb-2"><strong>本日（8/16）作成のスマホ版YouTube字幕抽出ツールが正常に復元されました</strong></p>
+        
+        <div class="server-info">
+            <h6>復元されたファイル:</h6>
+            <ul class="mb-2">
+                <li><code>app_mobile.py</code> - App Store Ready 2.0.0版</li>
+                <li><code>index_mobile.html</code> - 赤基調水面反射UI</li>
+                <li><code>performance_optimizer.py</code> - パフォーマンス最適化</li>
+                <li><code>start_mobile_server.bat</code> - 起動スクリプト</li>
+                <li><code>start_ngrok_youtube.bat</code> - ngrok公開スクリプト</li>
+            </ul>
+            
+            <h6>想定アクセスURL:</h6>
+            <ul class="mb-2">
+                <li><strong>ローカル:</strong> <code>http://localhost:8085</code></li>
+                <li><strong>ネットワーク:</strong> <code>http://[あなたのIP]:8085</code></li>
+                <li><strong>ngrok:</strong> start_ngrok_youtube.bat実行後</li>
+            </ul>
+            
+            <h6>機能:</h6>
+            <ul class="mb-0">
+                <li>YouTube字幕抽出・AI要約</li>
+                <li>QRコード生成</li>
+                <li>赤基調の水面反射エフェクト（YouTube仕様）</li>
+                <li>モバイル最適化レスポンシブデザイン</li>
+                <li>レート制限・セキュリティヘッダー</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Main card -->
+    <div class="main-card">
+        <div class="card-header-custom">
+            <h2>サーバー起動状況</h2>
+        </div>
+        <div class="card-body-custom">
+            <div class="alert alert-info">
+                <h6><i class="bi bi-info-circle"></i> 次のステップ:</h6>
+                <p class="mb-2">サーバーを起動するには以下のいずれかを実行してください：</p>
+                <ol>
+                    <li><code>start_mobile_server.bat</code>をダブルクリック</li>
+                    <li>コマンドプロンプトで<code>python app_mobile.py</code>を実行</li>
+                    <li>必要なパッケージ: qrcode, flask, flask-cors, youtube-transcript-api, google-generativeai</li>
+                </ol>
+            </div>
+            
+            <div class="alert alert-warning">
+                <h6><i class="bi bi-exclamation-triangle"></i> 注意:</h6>
+                <p class="mb-0">システムタイムアウトのため、Claude Codeからの直接起動が制限されています。<br>
+                上記の手動起動方法をお試しください。</p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
