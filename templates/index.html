@@ -2,211 +2,867 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Transcript Extractor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>YouTube字幕抽出ツール - スマホ版</title>
+    
+    <!-- Bootstrap 5.3.0 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+        :root {
+            --youtube-red: #ff0000;
+            --youtube-red-dark: #cc0000;
+            --youtube-red-light: #ff4757;
+            --youtube-red-lighter: #ff6b7a;
+            --youtube-gradient: linear-gradient(to right, #ff0000, #ff3542);
         }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
-        input[type="text"], select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
+        
+        * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
-        button {
-            background-color: #ff0000;
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            min-height: 100vh;
+            padding-bottom: 60px;
+            color: #333;
+        }
+        
+        /* Navbar with water reflection effect - YouTube Red version */
+        .navbar {
+            background: var(--youtube-gradient);
+            padding: 0.8rem;
+            box-shadow: 0 4px 20px rgba(255, 107, 122, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .navbar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 200%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse 280px 180px at 40% 30%, rgba(255, 90, 95, 0.3) 0%, transparent 40%),
+                radial-gradient(ellipse 200px 140px at 70% 60%, rgba(255, 100, 100, 0.25) 0%, transparent 45%),
+                radial-gradient(ellipse 240px 160px at 20% 80%, rgba(255, 95, 105, 0.2) 0%, transparent 50%);
+            animation: navbarWaterReflection 20s ease-in-out infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes navbarWaterReflection {
+            0%, 100% {
+                transform: translateX(0) scale(1);
+                opacity: 0.6;
+            }
+            25% {
+                transform: translateX(10%) scale(1.05);
+                opacity: 0.8;
+            }
+            50% {
+                transform: translateX(-5%) scale(0.98);
+                opacity: 0.7;
+            }
+            75% {
+                transform: translateX(15%) scale(1.02);
+                opacity: 0.9;
+            }
+        }
+        
+        .navbar-brand {
+            color: white !important;
+            font-size: 1.15rem;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1;
+            position: relative;
+        }
+        
+        .navbar-brand i {
+            font-size: 1.3rem;
+        }
+        
+        .btn-cache-clear {
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            padding: 0.4rem 0.8rem;
+        }
+        
+        .btn-cache-clear:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.8);
             color: white;
-            padding: 12px 24px;
+            transform: translateY(-1px);
+        }
+        
+        .container-mobile {
+            padding: 1rem;
+            max-width: 100%;
+        }
+        
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            margin-top: 1rem;
+            overflow: hidden;
+            border: 1px solid #e9ecef;
+        }
+        
+        .card-header-custom {
+            background: var(--youtube-gradient);
+            color: white;
+            padding: 1.2rem;
+            text-align: center;
+        }
+        
+        .card-header-custom h2 {
+            font-size: 1.2rem;
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .card-body-custom {
+            padding: 1.5rem;
+        }
+        
+        .form-label {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+        
+        .form-control, .form-select {
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 0.75rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--youtube-red);
+            box-shadow: 0 0 0 0.2rem rgba(255, 107, 122, 0.25);
+        }
+        
+        .btn-extract {
+            background: var(--youtube-gradient);
+            color: white;
             border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
+            border-radius: 12px;
+            padding: 0.875rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
             width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 122, 0.3);
         }
-        button:hover {
-            background-color: #cc0000;
+        
+        .btn-extract:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 122, 0.4);
         }
-        button:disabled {
-            background-color: #ccc;
+        
+        .btn-extract:disabled {
+            opacity: 0.6;
             cursor: not-allowed;
         }
-        #result {
-            margin-top: 30px;
-            padding: 20px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-            border: 1px solid #e0e0e0;
+        
+        .result-section {
+            margin-top: 2rem;
+            animation: fadeIn 0.5s ease;
         }
-        .hidden {
-            display: none;
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        .error {
-            color: #ff0000;
-            background-color: #ffe6e6;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ffcccc;
+        
+        .nav-tabs {
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 1rem;
         }
-        .success {
-            color: #008000;
-            background-color: #e6ffe6;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccffcc;
-        }
-        .loading {
-            text-align: center;
+        
+        .nav-tabs .nav-link {
             color: #666;
+            border: none;
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
         }
-        textarea {
-            width: 100%;
-            height: 300px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-family: monospace;
-            resize: vertical;
+        
+        .nav-tabs .nav-link.active {
+            color: var(--youtube-red);
+            background: transparent;
+            border-bottom: 3px solid;
+            border-image: var(--youtube-gradient) 1;
+        }
+        
+        .transcript-box {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .summary-box {
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+            border-left: 4px solid;
+            border-image: var(--youtube-gradient) 1;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--youtube-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+        
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .copy-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .alert-custom {
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border: none;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        
+        /* Access info modal */
+        .modal-content {
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        
+        .modal-header {
+            background: var(--youtube-gradient);
+            color: white;
+            border: none;
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
+        .access-url-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .access-url-item code {
+            background: var(--youtube-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            background-color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+        }
+        
+        .qr-code-container {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            margin-top: 1rem;
+        }
+        
+        .qr-code-container img {
+            max-width: 200px;
+            margin: 0 auto;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 576px) {
+            .navbar-brand {
+                font-size: 1.1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-extract {
+                font-size: 1rem;
+                padding: 0.75rem 1.5rem;
+            }
+        }
+        
+        /* Custom scrollbar */
+        .transcript-box::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .transcript-box::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .transcript-box::-webkit-scrollbar-thumb {
+            background: var(--youtube-gradient);
+            border-radius: 10px;
+        }
+        
+        .transcript-box::-webkit-scrollbar-thumb:hover {
+            background: var(--youtube-gradient);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>YouTube Transcript Extractor</h1>
-        
-        <form id="extractForm">
-            <div class="form-group">
-                <label for="url">YouTube URL:</label>
-                <input type="text" id="url" name="url" placeholder="https://www.youtube.com/watch?v=..." required>
+    <!-- Navbar with water reflection effect -->
+    <nav class="navbar">
+        <div class="container-fluid">
+            <span class="navbar-brand">
+                <i class="bi bi-youtube"></i>
+                YouTube字幕抽出ツール
+            </span>
+            <button type="button" class="btn btn-cache-clear" onclick="forceClearCache()" 
+                    title="ページを強制更新してキャッシュをクリア">
+                <i class="bi bi-arrow-clockwise"></i> 強制更新
+            </button>
+        </div>
+    </nav>
+    
+    <!-- Main container -->
+    <div class="container-mobile">
+        <div class="main-card">
+            <div class="card-header-custom">
+                <h2>動画の字幕を抽出・AI要約</h2>
             </div>
             
-            <div class="form-group">
-                <label for="lang">言語:</label>
-                <select id="lang" name="lang">
-                    <option value="ja">日本語</option>
-                    <option value="en">English</option>
-                    <option value="ko">한국어</option>
-                    <option value="zh">中文</option>
-                </select>
+            <div class="card-body-custom">
+                <!-- Input form -->
+                <form id="extractForm">
+                    <div class="mb-3">
+                        <label for="url" class="form-label">
+                            <i class="bi bi-link-45deg"></i> YouTube URL
+                        </label>
+                        <input type="text" class="form-control" id="url" 
+                               placeholder="https://www.youtube.com/watch?v=..." required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="lang" class="form-label">
+                            <i class="bi bi-translate"></i> 言語選択
+                        </label>
+                        <select class="form-select" id="lang">
+                            <option value="ja">日本語</option>
+                            <option value="en">English</option>
+                            <option value="ko">한국어</option>
+                            <option value="zh">中文</option>
+                            <option value="auto">自動検出</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-extract" id="extractBtn">
+                        <span id="btnText">字幕を抽出</span>
+                        <span id="btnSpinner" class="loading-spinner" style="display: none;"></span>
+                    </button>
+                </form>
+                
+                <!-- QR Code button in center -->
+                <div class="text-center mt-3">
+                    <button type="button" class="btn btn-outline-danger btn-lg" onclick="showAccessInfo()">
+                        <i class="bi bi-qr-code me-2"></i>
+                        スマホでアクセス
+                    </button>
+                    <div class="small text-muted mt-2">QRコードでモバイル端末からアクセス</div>
+                </div>
+                
+                <!-- Version display at bottom -->
+                <div class="text-center mt-4">
+                    <small class="text-muted" style="font-size: 0.75rem;">
+                        <i class="bi bi-info-circle"></i> <span id="versionDisplay">v1.3.11-gradient-red</span>
+                    </small>
+                </div>
+                
+                <!-- Result section -->
+                <div id="resultSection" class="result-section" style="display: none;">
+                    <!-- Video info -->
+                    <div id="videoInfo" class="alert alert-success alert-custom">
+                        <h5 id="videoTitle"></h5>
+                        <small class="text-muted" id="versionInfo" style="float: right; font-size: 0.8rem;"></small>
+                    </div>
+                    
+                    <!-- Stats -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="segmentCount">-</div>
+                            <div class="stat-label">セグメント</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="charCount">-</div>
+                            <div class="stat-label">文字数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="langDisplay">-</div>
+                            <div class="stat-label">言語</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tab navigation -->
+                    <ul class="nav nav-tabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#formatted">整形済み</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#original">元テキスト</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#summary">AI要約</a>
+                        </li>
+                    </ul>
+                    
+                    <!-- Tab content -->
+                    <div class="tab-content">
+                        <div id="formatted" class="tab-pane fade show active">
+                            <div class="transcript-box" id="formattedTranscript"></div>
+                            <button class="copy-btn mt-2" onclick="copyText('formattedTranscript')">
+                                <i class="bi bi-clipboard"></i> コピー
+                            </button>
+                        </div>
+                        <div id="original" class="tab-pane fade">
+                            <div class="transcript-box" id="originalTranscript"></div>
+                            <button class="copy-btn mt-2" onclick="copyText('originalTranscript')">
+                                <i class="bi bi-clipboard"></i> コピー
+                            </button>
+                        </div>
+                        <div id="summary" class="tab-pane fade">
+                            <div class="summary-box" id="summaryContent"></div>
+                            <button class="copy-btn mt-2" onclick="copyText('summaryContent')">
+                                <i class="bi bi-clipboard"></i> コピー
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Error section -->
+                <div id="errorSection" class="alert alert-error alert-custom" style="display: none;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <span id="errorMessage"></span>
+                </div>
             </div>
-            
-            <div class="form-group">
-                <label for="format">出力フォーマット:</label>
-                <select id="format" name="format">
-                    <option value="txt">テキスト</option>
-                    <option value="json">JSON</option>
-                    <option value="srt">SRT (字幕ファイル)</option>
-                </select>
-            </div>
-            
-            <button type="submit" id="submitBtn">字幕を抽出</button>
-        </form>
-        
-        <div id="result" class="hidden">
-            <h2>結果</h2>
-            <div id="resultContent"></div>
         </div>
     </div>
-
+    
+    
+    <!-- Access info modal -->
+    <div class="modal fade" id="accessModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-globe"></i> アクセス情報
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="accessUrls"></div>
+                    <div id="qrCodeContainer" class="qr-code-container" style="display: none;">
+                        <h6>QRコード</h6>
+                        <div id="qrCodeImage"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
-        document.getElementById('extractForm').addEventListener('submit', async function(e) {
+        const API_BASE = window.location.origin;
+        
+        document.getElementById('extractForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const form = e.target;
-            const submitBtn = document.getElementById('submitBtn');
-            const result = document.getElementById('result');
-            const resultContent = document.getElementById('resultContent');
+            const url = document.getElementById('url').value;
+            const lang = document.getElementById('lang').value;
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+            const extractBtn = document.getElementById('extractBtn');
             
-            // ボタンを無効化
-            submitBtn.disabled = true;
-            submitBtn.textContent = '処理中...';
+            if (!url.trim()) {
+                showError('YouTube URLを入力してください');
+                return;
+            }
             
-            // 結果エリアを表示
-            result.classList.remove('hidden');
-            resultContent.innerHTML = '<div class="loading">字幕を取得中...</div>';
+            // UI状態更新
+            btnText.textContent = '処理中...';
+            btnSpinner.style.display = 'inline-block';
+            extractBtn.disabled = true;
             
+            // 結果セクションを非表示
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('errorSection').style.display = 'none';
+            
+            // 詳細なデバッグログを追加
             try {
-                const formData = new FormData(form);
-                const data = {
-                    url: formData.get('url'),
-                    lang: formData.get('lang'),
-                    format: formData.get('format')
-                };
+                console.log('[DEBUG] Starting server connection process...');
+                console.log('[DEBUG] API_BASE:', API_BASE);
+                console.log('[DEBUG] URL to extract:', url);
+                console.log('[DEBUG] Language:', lang);
                 
-                const response = await fetch('/extract', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(data)
-                });
+                // サーバーURLを同一オリジンに修正
+                const serverUrls = [
+                    `${API_BASE}/api/extract`,
+                    '/api/extract'
+                ];
                 
-                const result_data = await response.json();
+                console.log('[DEBUG] Server URLs to try:', serverUrls);
                 
-                if (result_data.success) {
-                    const stats = result_data.stats || {};
-                    resultContent.innerHTML = `
-                        <div class="success">
-                            <h3>[OK] 抽出成功</h3>
-                            <p><strong>タイトル:</strong> ${result_data.title || 'Unknown'}</p>
-                            <p><strong>動画ID:</strong> ${result_data.video_id || 'Unknown'}</p>
-                            <p><strong>セグメント数:</strong> ${stats.total_segments || 'Unknown'}</p>
-                            <p><strong>総時間:</strong> ${Math.round(stats.total_duration || 0)} 秒</p>
-                            <p><strong>言語:</strong> ${stats.language || 'Unknown'}</p>
-                        </div>
-                        <h4>字幕テキスト（AI整形済み）:</h4>
-                        <textarea id="transcriptText" readonly>${result_data.transcript}</textarea>
+                let success = false;
+                let data = null;
+                
+                for (const serverUrl of serverUrls) {
+                    try {
+                        console.log('[DEBUG] Attempting connection to:', serverUrl);
                         
-                        <h4 style="margin-top: 20px;">詳細な要約:</h4>
-                        <textarea id="summaryText" readonly style="height: 250px; background-color: #f0f8ff; font-size: 14px; line-height: 1.6;">${result_data.summary || '要約を生成中...'}</textarea>
-                    `;
+                        const requestBody = JSON.stringify({ url, lang, generate_summary: true });
+                        console.log('[DEBUG] Request body:', requestBody);
+                        
+                        const response = await fetch(serverUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: requestBody
+                        });
+                        
+                        console.log('[DEBUG] Response status:', response.status);
+                        console.log('[DEBUG] Response ok:', response.ok);
+                        
+                        if (response.ok) {
+                            data = await response.json();
+                            success = true;
+                            console.log('[SUCCESS] Server connected successfully:', serverUrl);
+                            console.log('[DEBUG] Response data:', data);
+                            break;
+                        } else {
+                            console.log('[ERROR] Response not ok:', response.status, response.statusText);
+                        }
+                    } catch (serverError) {
+                        console.log('[ERROR] Server connection failed:', serverUrl, serverError);
+                        console.log('[ERROR] Error details:', serverError.message);
+                        continue;
+                    }
+                }
+                
+                if (success && data && data.success) {
+                    console.log('[SUCCESS] Processing successful response');
+                    // バージョン更新
+                    updateVersionDisplay();
+                    // 結果表示
+                    displayResults(data);
+                } else if (success && data) {
+                    console.log('[ERROR] Server returned error:', data.error);
+                    showError(data.error || '字幕の抽出に失敗しました');
                 } else {
-                    resultContent.innerHTML = `
-                        <div class="error">
-                            <h3>[ERROR] エラー</h3>
-                            <p>${result_data.error}</p>
-                        </div>
-                    `;
+                    console.log('[WARN] No successful connection, showing demo');
+                    // サーバーが利用できない場合のデモ表示
+                    showDemoResults(url, lang);
                 }
             } catch (error) {
-                resultContent.innerHTML = `
-                    <div class="error">
-                        <h3>[ERROR] 通信エラー</h3>
-                        <p>サーバーとの通信でエラーが発生しました: ${error.message}</p>
-                    </div>
-                `;
+                console.error('[CRITICAL] All servers failed:', error);
+                console.error('[CRITICAL] Error stack:', error.stack);
+                showDemoResults(url, lang);
             } finally {
-                // ボタンを再有効化
-                submitBtn.disabled = false;
-                submitBtn.textContent = '字幕を抽出';
+                btnText.textContent = '字幕を抽出';
+                btnSpinner.style.display = 'none';
+                extractBtn.disabled = false;
             }
         });
+        
+        function showDemoResults(url, lang) {
+            console.log('Showing demo results for:', url);
+            
+            // デモ用データ
+            const demoData = {
+                success: true,
+                title: 'YouTube動画 (デモ)',
+                transcript: 'こんにちは、皆さん。\n\n今日は素晴らしい一日ですね。\n\nYouTube字幕抽出ツールのデモンストレーションをご覧いただき、ありがとうございます。\n\nこのツールは以下の機能を提供します：\n・YouTube動画の字幕を自動抽出\n・AIによる要約生成\n・テキストの整形と誤変換修正\n・多言語対応\n\n実際のサーバーが利用可能になると、より高度な機能をお使いいただけます。',
+                original_transcript: 'こんにちは、皆さん。今日は素晴らしい一日ですね。YouTube字幕抽出ツールのデモンストレーションをご覧いただき、ありがとうございます。このツールは以下の機能を提供します：YouTube動画の字幕を自動抽出、AIによる要約生成、テキストの整形と誤変換修正、多言語対応。実際のサーバーが利用可能になると、より高度な機能をお使いいただけます。',
+                summary: '🤖 AI要約 (デモモード):\n\nYouTube字幕抽出ツールのデモンストレーション動画です。主要な機能として字幕自動抽出、AI要約生成、テキスト整形、多言語対応が紹介されています。\n\n---\n📊 分析情報:\n・ 動画URL: ' + url + '\n・ 元テキスト文字数: 123文字\n・ 処理時刻: ' + new Date().toTimeString().split(' ')[0] + '\n・ 言語設定: ' + lang.toUpperCase() + '\n・ 状態: デモモード（サーバー接続待機中）',
+                stats: {
+                    segments: 15,
+                    characters: 123,
+                    language: lang.toUpperCase(),
+                    transcript_type: 'Demo'
+                },
+                version: 'v1.3.11-gradient-red-demo-' + new Date().getHours().toString().padStart(2, '0') + new Date().getMinutes().toString().padStart(2, '0'),
+                server_time: new Date().toLocaleString(),
+                cache_cleared: 'demo'
+            };
+            
+            displayResults(demoData);
+            
+            // サーバー接続情報を表示
+            setTimeout(() => {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-info alert-custom';
+                alertDiv.innerHTML = `
+                    <i class="bi bi-info-circle"></i> 
+                    <strong>デモモード:</strong> サーバーに接続できませんでした。
+                    <br>実際のサーバーは以下のURLで確認できます：
+                    <br>• <a href="http://127.0.0.1:8085" target="_blank">http://127.0.0.1:8085</a>
+                    <br>• <a href="http://127.0.0.1:8089" target="_blank">http://127.0.0.1:8089</a>
+                    <br>• <a href="http://127.0.0.1:8088" target="_blank">http://127.0.0.1:8088</a>
+                `;
+                document.querySelector('.card-body-custom').prepend(alertDiv);
+                
+                setTimeout(() => alertDiv.remove(), 10000);
+            }, 1000);
+        }
+        
+        function displayResults(data) {
+            // Video info
+            document.getElementById('videoTitle').textContent = data.title || 'YouTube動画';
+            
+            // バージョン情報とキャッシュ情報を表示
+            const versionInfo = `${data.version || 'v1.3.11'} | ${data.server_time || ''} | キャッシュ: ${data.cache_cleared || 'none'}`;
+            if (document.getElementById('versionInfo')) {
+                document.getElementById('versionInfo').textContent = versionInfo;
+            }
+            document.getElementById('versionInfo').textContent = data.version || '';
+            
+            // Stats - 詳細情報を含む
+            document.getElementById('segmentCount').textContent = data.stats?.segments || '-';
+            document.getElementById('charCount').textContent = 
+                data.stats?.characters ? `${(data.stats.characters / 1000).toFixed(1)}K` : '-';
+            document.getElementById('langDisplay').textContent = 
+                (data.stats?.language?.toUpperCase() || '-') + 
+                (data.stats?.transcript_type ? ` (${data.stats.transcript_type})` : '');
+            
+            // Transcripts
+            document.getElementById('formattedTranscript').textContent = 
+                data.transcript || '字幕を取得できませんでした';
+            document.getElementById('originalTranscript').textContent = 
+                data.original_transcript || data.transcript || '字幕を取得できませんでした';
+            document.getElementById('summaryContent').textContent = 
+                data.summary || 'AI要約を生成中...';
+            
+            // Show result section
+            document.getElementById('resultSection').style.display = 'block';
+        }
+        
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorSection').style.display = 'block';
+        }
+        
+        function copyText(elementId) {
+            const text = document.getElementById(elementId).textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                // Show toast or alert
+                const btn = event.target.closest('button');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check"></i> コピー完了';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                }, 2000);
+            });
+        }
+        
+        async function showAccessInfo() {
+            const modal = new bootstrap.Modal(document.getElementById('accessModal'));
+            
+            // Get access info
+            try {
+                const response = await fetch(`${API_BASE}/api/access-info`);
+                const data = await response.json();
+                
+                const urlsHtml = `
+                    <div class="access-url-item">
+                        <span>ローカル</span>
+                        <code>${data.localURL}</code>
+                    </div>
+                    <div class="access-url-item">
+                        <span>ネットワーク</span>
+                        <code>${data.networkURL}</code>
+                    </div>
+                    ${data.ngrokURL !== 'Not available' ? `
+                    <div class="access-url-item">
+                        <span>ngrok</span>
+                        <code>${data.ngrokURL}</code>
+                    </div>` : ''}
+                `;
+                
+                document.getElementById('accessUrls').innerHTML = urlsHtml;
+                
+                // Generate QR code
+                const qrResponse = await fetch(`${API_BASE}/qr-code?url=${encodeURIComponent(data.networkURL)}`);
+                const qrData = await qrResponse.json();
+                
+                if (qrData.success) {
+                    document.getElementById('qrCodeImage').innerHTML = 
+                        `<img src="${qrData.qr_code}" alt="QR Code">`;
+                    document.getElementById('qrCodeContainer').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Failed to get access info:', error);
+            }
+            
+            modal.show();
+        }
+        
+        // バージョン情報を動的更新
+        function updateVersionDisplay() {
+            const now = new Date();
+            const timestamp = now.getHours().toString().padStart(2, '0') + 
+                            now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            const versionElement = document.getElementById('versionDisplay');
+            if (versionElement) {
+                versionElement.textContent = `v1.3.11-gradient-red-${timestamp}:${seconds}`;
+            }
+        }
+        
+        // キャッシュ状態をチェック
+        function checkCacheStatus() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const cacheParam = urlParams.get('cache');
+            if (cacheParam) {
+                console.log('Cache cleared with timestamp:', cacheParam);
+                // キャッシュクリア成功メッセージを表示
+                setTimeout(() => {
+                    const alertDiv = document.createElement('div');
+                    alertDiv.className = 'alert alert-success alert-custom';
+                    alertDiv.innerHTML = `<i class="bi bi-check-circle"></i> キャッシュクリア成功 (${cacheParam})`;
+                    document.querySelector('.card-body-custom').prepend(alertDiv);
+                    setTimeout(() => alertDiv.remove(), 3000);
+                }, 100);
+            }
+            return cacheParam;
+        }
+        
+        // ページロード時の初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateVersionDisplay();
+            checkCacheStatus();
+            // 5秒ごとにバージョン更新 (秒単位表示)
+            setInterval(updateVersionDisplay, 5000);
+        });
+        
+        // 強制キャッシュクリア機能
+        function forceClearCache() {
+            // バージョン更新
+            updateVersionDisplay();
+            
+            // 詳細なタイムスタンプを追加してキャッシュを無効化
+            const now = new Date();
+            const timestamp = now.getTime();
+            const readableTime = now.toTimeString().split(' ')[0]; // HH:MM:SS
+            const currentUrl = window.location.href.split('?')[0];
+            const newUrl = `${currentUrl}?cache=${timestamp}&time=${readableTime}`;
+            
+            console.log('Force clearing cache with timestamp:', timestamp, 'readable:', readableTime);
+            
+            // アニメーション付きでボタンを回転
+            const btn = event.target.closest('button');
+            btn.style.transform = 'rotate(360deg)';
+            btn.style.transition = 'transform 0.5s ease';
+            btn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> クリア中...';
+            
+            // 少し遅延してからページをリロード
+            setTimeout(() => {
+                window.location.href = newUrl;
+            }, 500);
+        }
     </script>
 </body>
 </html>
