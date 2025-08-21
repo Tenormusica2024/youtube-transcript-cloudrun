@@ -41,79 +41,9 @@
             overflow: hidden;
         }
         
-        .navbar::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 300%;
-            height: 150%;
-            background: 
-                radial-gradient(circle 120px at 30% 40%, rgba(255, 255, 255, 0.4) 0%, transparent 70%),
-                radial-gradient(circle 80px at 70% 20%, rgba(255, 255, 255, 0.3) 0%, transparent 60%),
-                radial-gradient(circle 140px at 10% 70%, rgba(255, 200, 200, 0.35) 0%, transparent 65%),
-                radial-gradient(circle 60px at 85% 80%, rgba(255, 255, 255, 0.25) 0%, transparent 55%),
-                radial-gradient(circle 100px at 50% 10%, rgba(255, 180, 180, 0.3) 0%, transparent 60%);
-            animation: navbarWaterReflection 25s ease-in-out infinite;
-            pointer-events: none;
-        }
+        /* Static CSS effects disabled - using dynamic JavaScript orbs only */
         
-        .navbar::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -150%;
-            width: 400%;
-            height: 200%;
-            background: 
-                radial-gradient(circle 90px at 60% 60%, rgba(255, 255, 255, 0.2) 0%, transparent 70%),
-                radial-gradient(circle 110px at 20% 30%, rgba(255, 220, 220, 0.25) 0%, transparent 65%),
-                radial-gradient(circle 70px at 90% 40%, rgba(255, 255, 255, 0.3) 0%, transparent 60%);
-            animation: navbarWaterReflection2 18s ease-in-out infinite reverse;
-            pointer-events: none;
-        }
-        
-        @keyframes navbarWaterReflection {
-            0%, 100% {
-                transform: translateX(0) translateY(0) scale(1) rotate(0deg);
-                opacity: 0.7;
-            }
-            20% {
-                transform: translateX(8%) translateY(-3%) scale(1.08) rotate(2deg);
-                opacity: 0.9;
-            }
-            40% {
-                transform: translateX(-12%) translateY(5%) scale(0.95) rotate(-1deg);
-                opacity: 0.6;
-            }
-            60% {
-                transform: translateX(15%) translateY(-2%) scale(1.12) rotate(3deg);
-                opacity: 0.8;
-            }
-            80% {
-                transform: translateX(-8%) translateY(4%) scale(0.98) rotate(-2deg);
-                opacity: 0.75;
-            }
-        }
-        
-        @keyframes navbarWaterReflection2 {
-            0%, 100% {
-                transform: translateX(20%) translateY(10%) scale(1.1) rotate(5deg);
-                opacity: 0.5;
-            }
-            25% {
-                transform: translateX(-10%) translateY(-5%) scale(0.9) rotate(-3deg);
-                opacity: 0.8;
-            }
-            50% {
-                transform: translateX(25%) translateY(8%) scale(1.15) rotate(8deg);
-                opacity: 0.6;
-            }
-            75% {
-                transform: translateX(-5%) translateY(-8%) scale(0.85) rotate(-5deg);
-                opacity: 0.9;
-            }
-        }
+        /* CSS keyframes removed - using dynamic JavaScript animations only */
         
         .navbar-brand {
             color: white !important;
@@ -1154,16 +1084,16 @@
             `;
             navbar.appendChild(orbContainer);
 
-            // Create multiple floating orbs
+            // Create multiple floating orbs - Large & Slow
             for (let i = 0; i < 6; i++) {
                 const orb = document.createElement('div');
                 orb.className = 'water-orb';
                 
-                const size = 20 + Math.random() * 60; // 20-80px
+                const size = (20 + Math.random() * 60) * 10; // 200-800px (10x larger)
                 const startX = Math.random() * 120 - 20; // -20% to 100%
                 const startY = Math.random() * 120 - 10; // -10% to 110%
-                const delay = Math.random() * 8; // 0-8s delay
-                const duration = 12 + Math.random() * 16; // 12-28s duration
+                const delay = Math.random() * 40; // 0-40s delay (5x longer)
+                const duration = (12 + Math.random() * 16) * 5; // 60-140s duration (5x slower)
                 
                 orb.style.cssText = `
                     position: absolute;
@@ -1178,25 +1108,32 @@
                     mix-blend-mode: screen;
                 `;
                 
-                // Generate unique keyframes for each orb
+                // Generate unique keyframes for each orb - Large movements
                 const keyframeName = `floatingOrb${i}`;
+                const moveX1 = -100 + Math.random() * 200; // -100px to 100px
+                const moveY1 = -75 + Math.random() * 150;  // -75px to 75px
+                const moveX2 = -150 + Math.random() * 300; // -150px to 150px
+                const moveY2 = -100 + Math.random() * 200; // -100px to 100px
+                const moveX3 = -75 + Math.random() * 150;  // -75px to 75px
+                const moveY3 = -50 + Math.random() * 100;  // -50px to 50px
+                
                 const keyframes = `
                     @keyframes ${keyframeName} {
                         0%, 100% {
                             transform: translate(0, 0) scale(1);
-                            opacity: 0.4;
+                            opacity: 0.3;
                         }
                         25% {
-                            transform: translate(${-20 + Math.random() * 40}px, ${-15 + Math.random() * 30}px) scale(${0.8 + Math.random() * 0.4});
-                            opacity: 0.8;
-                        }
-                        50% {
-                            transform: translate(${-30 + Math.random() * 60}px, ${-20 + Math.random() * 40}px) scale(${0.9 + Math.random() * 0.3});
+                            transform: translate(${moveX1}px, ${moveY1}px) scale(${0.7 + Math.random() * 0.3});
                             opacity: 0.6;
                         }
+                        50% {
+                            transform: translate(${moveX2}px, ${moveY2}px) scale(${0.8 + Math.random() * 0.4});
+                            opacity: 0.4;
+                        }
                         75% {
-                            transform: translate(${-15 + Math.random() * 30}px, ${-10 + Math.random() * 20}px) scale(${0.85 + Math.random() * 0.35});
-                            opacity: 0.9;
+                            transform: translate(${moveX3}px, ${moveY3}px) scale(${0.75 + Math.random() * 0.25});
+                            opacity: 0.7;
                         }
                     }
                 `;
