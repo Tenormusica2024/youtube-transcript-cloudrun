@@ -49,7 +49,11 @@ def extract_youtube_transcript(video_url, language_code="ja"):
         # --- まだダメなら list_transcripts で取得可能なものを拾う ---
         try:
             transcripts = YouTubeTranscriptApi.list_transcripts(video_id)
-            preferred = [t for t in transcripts if getattr(t, "language_code", None) in ("ja","en")]
+            preferred = [
+                t
+                for t in transcripts
+                if getattr(t, "language_code", None) in ("ja", "en")
+            ]
             ordered = preferred + [t for t in transcripts if t not in preferred]
             for t in ordered:
                 try:

@@ -4,9 +4,10 @@ YouTube字幕抽出ツール - 依存関係自動インストールスクリプ�
 必要なパッケージを一括インストールします。
 """
 
+import os
 import subprocess
 import sys
-import os
+
 
 def install_package(package):
     """パッケージをインストール"""
@@ -16,7 +17,7 @@ def install_package(package):
             [sys.executable, "-m", "pip", "install", package, "--user"],
             capture_output=True,
             text=True,
-            check=True
+            check=True,
         )
         print(f"✅ {package} インストール成功")
         return True
@@ -25,37 +26,38 @@ def install_package(package):
         print(f"エラー出力: {e.stderr}")
         return False
 
+
 def main():
     """メイン処理"""
     print("YouTube字幕抽出ツール - 依存関係インストール")
     print("=" * 50)
-    
+
     # 必要なパッケージリスト
     packages = [
         "flask",
-        "flask-cors", 
+        "flask-cors",
         "youtube-transcript-api",
         "qrcode[pil]",
         "python-dotenv",
         "google-generativeai",
         "google-api-python-client",
         "requests",
-        "werkzeug"
+        "werkzeug",
     ]
-    
+
     success_count = 0
     failed_packages = []
-    
+
     for package in packages:
         if install_package(package):
             success_count += 1
         else:
             failed_packages.append(package)
-    
+
     print("\n" + "=" * 50)
     print("インストール結果:")
     print(f"✅ 成功: {success_count}/{len(packages)}")
-    
+
     if failed_packages:
         print(f"❌ 失敗: {failed_packages}")
         print("\n⚠️  一部パッケージのインストールに失敗しました。")
@@ -67,8 +69,9 @@ def main():
         print("\n次のステップ:")
         print("1. サーバー起動: py -3 app_mobile.py")
         print("2. ブラウザでアクセス: http://127.0.0.1:8085")
-    
+
     return len(failed_packages) == 0
+
 
 if __name__ == "__main__":
     success = main()

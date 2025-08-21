@@ -5,16 +5,18 @@ YouTube Transcript App - Quick Recovery Test Server
 """
 
 import os
+
 from flask import Flask, render_template
 from flask_cors import CORS
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 CORS(app)
 
-@app.route('/')
+
+@app.route("/")
 def index():
     """メインページ"""
-    return '''
+    return """
     <!DOCTYPE html>
     <html lang="ja">
     <head>
@@ -90,30 +92,33 @@ def index():
         </div>
     </body>
     </html>
-    '''
+    """
 
-@app.route('/health')
+
+@app.route("/health")
 def health():
     """ヘルスチェック"""
-    return {'status': 'ok', 'message': 'YouTube Transcript App is running'}
+    return {"status": "ok", "message": "YouTube Transcript App is running"}
 
-@app.route('/test')
+
+@app.route("/test")
 def test():
     """API接続テスト"""
-    import sys
     import json
-    
-    info = {
-        'python_version': sys.version,
-        'flask_version': 'Available',
-        'working_directory': os.getcwd(),
-        'template_folder': app.template_folder,
-        'static_folder': app.static_folder
-    }
-    
-    return f'<pre>{json.dumps(info, indent=2, ensure_ascii=False)}</pre>'
+    import sys
 
-if __name__ == '__main__':
+    info = {
+        "python_version": sys.version,
+        "flask_version": "Available",
+        "working_directory": os.getcwd(),
+        "template_folder": app.template_folder,
+        "static_folder": app.static_folder,
+    }
+
+    return f"<pre>{json.dumps(info, indent=2, ensure_ascii=False)}</pre>"
+
+
+if __name__ == "__main__":
     print("=" * 50)
     print("YouTube Transcript App - Quick Recovery Test")
     print("=" * 50)
@@ -123,8 +128,8 @@ if __name__ == '__main__':
     print("  Health: http://localhost:8085/health")
     print("  Test: http://localhost:8085/test")
     print("=" * 50)
-    
+
     try:
-        app.run(host='127.0.0.1', port=8085, debug=True)
+        app.run(host="127.0.0.1", port=8085, debug=True)
     except Exception as e:
         print(f"Server startup error: {e}")

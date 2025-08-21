@@ -10,25 +10,32 @@ import logging
 import os
 import time
 from datetime import datetime
-from flask import Flask, jsonify, request, render_template_string
-from flask_cors import CORS
+
 import qrcode
 import requests
 from dotenv import load_dotenv
+from flask import Flask, jsonify, render_template_string, request
+from flask_cors import CORS
 
 # 環境変数読み込み
 load_dotenv()
 
 # 環境変数デバッグ
 import logging
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-logger.info(f"GEMINI_API_KEY loaded: {'SET' if os.environ.get('GEMINI_API_KEY') else 'NOT SET'}")
+logger.info(
+    f"GEMINI_API_KEY loaded: {'SET' if os.environ.get('GEMINI_API_KEY') else 'NOT SET'}"
+)
+
+import os
+
+import google.generativeai as genai
 
 # hybrid_transcript_toolから必要な関数をインポート
-from hybrid_transcript_tool import extract_video_id, get_transcript_local, format_transcript_text
-import google.generativeai as genai
-import os
+from hybrid_transcript_tool import (extract_video_id, format_transcript_text,
+                                    get_transcript_local)
 
 # ロギング設定
 logging.basicConfig(level=logging.INFO)
@@ -38,6 +45,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)
 
+
 def get_ngrok_url():
     """ngrok APIから現在のURLを動的取得"""
     try:
@@ -45,7 +53,9 @@ def get_ngrok_url():
         if response.status_code == 200:
             tunnels = response.json().get("tunnels", [])
             for tunnel in tunnels:
-                if tunnel.get("proto") == "https" and "localhost:5001" in tunnel.get("config", {}).get("addr", ""):
+                if tunnel.get("proto") == "https" and "localhost:5001" in tunnel.get(
+                    "config", {}
+                ).get("addr", ""):
                     public_url = tunnel.get("public_url")
                     if public_url:
                         logger.info(f"ngrok URL取得成功: {public_url}")
@@ -55,6 +65,7 @@ def get_ngrok_url():
     except Exception as e:
         logger.warning(f"ngrok API接続失敗: {e}")
         return "http://localhost:5001"
+
 
 def get_ai_api_key():
     """AI APIキーを取得"""
@@ -69,6 +80,7 @@ def get_ai_api_key():
 
     logger.info("AI API key configured successfully")
     return api_key
+
 
 def format_with_ai(text, api_key):
     """AIでテキストを整形"""
@@ -153,24 +165,26 @@ def format_with_ai(text, api_key):
         logger.error(f"AI整形エラー: {e}")
         return text
 
+
 def generate_qr_code(url):
     """QRコード生成"""
     try:
         qr = qrcode.QRCode(version=1, box_size=10, border=5)
         qr.add_data(url)
         qr.make(fit=True)
-        
+
         img = qr.make_image(fill_color="black", back_color="white")
         img_buffer = io.BytesIO()
         img.save(img_buffer, format="PNG")
         img_buffer.seek(0)
-        
+
         # Base64エンコード
         img_base64 = base64.b64encode(img_buffer.getvalue()).decode()
         return f"data:image/png;base64,{img_base64}"
     except Exception as e:
         logger.error(f"QRコード生成エラー: {e}")
         return None
+
 
 # HTML テンプレート
 HTML_TEMPLATE = """
@@ -832,19 +846,24 @@ HTML_TEMPLATE = """
 </html>
 """
 
+
 @app.route("/")
 def index():
     """メインページ"""
     return render_template_string(HTML_TEMPLATE)
 
+
 @app.route("/health")
 def health():
     """ヘルスチェックエンドポイント"""
-    return jsonify({
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "service": "YouTube Transcript Extractor - Local"
-    })
+    return jsonify(
+        {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "service": "YouTube Transcript Extractor - Local",
+        }
+    )
+
 
 @app.route("/extract", methods=["POST"])
 def extract():
@@ -853,77 +872,88 @@ def extract():
         logger.info("Extract endpoint called")
         data = request.json
         logger.info(f"Request data: {data}")
-        
+
         url = data.get("url")
         lang = data.get("lang", "auto")
-        
+
         if not url:
             return jsonify({"success": False, "error": "URLが指定されていません"}), 400
-        
+
         logger.info(f"Processing URL: {url}, Lang: {lang}")
-        
+
         # 動画ID取得
         video_id = extract_video_id(url)
         if not video_id:
-            return jsonify({"success": False, "error": "有効なYouTube URLではありません"}), 400
-        
+            return (
+                jsonify({"success": False, "error": "有効なYouTube URLではありません"}),
+                400,
+            )
+
         logger.info(f"Processing video: {video_id}")
-        
+
         # 字幕取得
         transcript, detected_lang = get_transcript_local(video_id, lang)
-        
+
         if not transcript:
             return jsonify({"success": False, "error": "字幕の取得に失敗しました"}), 400
-        
+
         # プレーンテキストに変換
         transcript_text = format_transcript_text(transcript)
-        
+
         # AI整形と要約を実行
         formatted_transcript = transcript_text
         summary_text = ""
-        
+
         try:
             api_key = get_ai_api_key()
             if api_key:
                 logger.info("AI整形・要約を実行中...")
                 ai_response = format_with_ai(transcript_text, api_key)
                 logger.info("AI処理完了")
-                
+
                 # 要約と整形テキストを分離
                 if "要約：" in ai_response:
                     parts = ai_response.split("要約：", 1)
                     if len(parts) > 1:
                         summary_text = parts[1].strip()
-                        formatted_transcript = parts[0].replace("整形後テキスト：", "").strip()
+                        formatted_transcript = (
+                            parts[0].replace("整形後テキスト：", "").strip()
+                        )
                 elif "【要約】" in ai_response:
                     parts = ai_response.split("【要約】", 1)
                     if len(parts) > 1:
                         summary_text = parts[1].strip()
-                        formatted_transcript = parts[0].replace("整形後テキスト：", "").strip()
+                        formatted_transcript = (
+                            parts[0].replace("整形後テキスト：", "").strip()
+                        )
                 else:
                     formatted_transcript = ai_response
                     summary_text = "AI要約の分離に失敗しました"
-                
+
                 # 不要な接頭辞を削除
-                formatted_transcript = formatted_transcript.replace("整形後テキスト：", "")
-                formatted_transcript = formatted_transcript.replace("**整形後テキスト：**", "")
+                formatted_transcript = formatted_transcript.replace(
+                    "整形後テキスト：", ""
+                )
+                formatted_transcript = formatted_transcript.replace(
+                    "**整形後テキスト：**", ""
+                )
                 formatted_transcript = formatted_transcript.strip()
-                
+
             else:
                 logger.warning("GEMINI_API_KEY未設定 - 基本整形を使用")
                 summary_text = "AI要約機能を使用するにはGEMINI_API_KEYが必要です。"
-                
+
         except Exception as e:
             logger.error(f"AI処理エラー: {e}")
             summary_text = "AI処理中にエラーが発生しました。"
-        
+
         # 統計情報
         stats = {
             "segments": len(transcript),
             "characters": len(formatted_transcript),
             "language": detected_lang,
         }
-        
+
         response_data = {
             "success": True,
             "video_id": video_id,
@@ -932,54 +962,57 @@ def extract():
             "summary": summary_text,
             "stats": stats,
         }
-        
+
         logger.info(f"Successfully processed video {video_id}")
         return jsonify(response_data)
-        
+
     except ValueError as e:
         logger.warning(f"User error: {e}")
         return jsonify({"success": False, "error": str(e)}), 400
     except Exception as e:
         logger.error(f"Unexpected error in extract endpoint: {e}")
-        return jsonify({"success": False, "error": f"予期しないエラーが発生しました: {str(e)}"}), 500
+        return (
+            jsonify(
+                {"success": False, "error": f"予期しないエラーが発生しました: {str(e)}"}
+            ),
+            500,
+        )
+
 
 @app.route("/qr-code")
 def generate_qr():
     """QRコード生成エンドポイント"""
     try:
         logger.info("QRコード生成リクエスト受信")
-        
+
         # ngrok URLを動的取得
         ngrok_url = get_ngrok_url()
         logger.info(f"使用URL: {ngrok_url}")
-        
+
         # QRコード生成
         qr_code_data = generate_qr_code(ngrok_url)
-        
+
         if qr_code_data:
-            return jsonify({
-                "success": True, 
-                "qr_code": qr_code_data, 
-                "url": ngrok_url
-            })
+            return jsonify({"success": True, "qr_code": qr_code_data, "url": ngrok_url})
         else:
-            return jsonify({
-                "success": False, 
-                "error": "QRコード生成に失敗しました"
-            }), 500
-            
+            return (
+                jsonify({"success": False, "error": "QRコード生成に失敗しました"}),
+                500,
+            )
+
     except Exception as e:
         logger.error(f"QRコード生成エラー: {e}")
-        return jsonify({
-            "success": False, 
-            "error": f"QRコード生成エラー: {str(e)}"
-        }), 500
+        return (
+            jsonify({"success": False, "error": f"QRコード生成エラー: {str(e)}"}),
+            500,
+        )
+
 
 if __name__ == "__main__":
     port = 5001
     logger.info(f"Starting simple YouTube transcript server on port {port}")
     logger.info(f"Open your browser to: http://localhost:{port}")
-    
+
     try:
         app.run(host="127.0.0.1", port=port, debug=True)
     except Exception as e:

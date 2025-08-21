@@ -89,7 +89,10 @@ def extract_youtube_transcript(video_url, language_code="ja"):
     except Exception as e:
         logger.error(f"[extract] error: {e}")
         return {"success": False, "error": str(e)}
-'''.lstrip("\n")
+'''.lstrip(
+    "\n"
+)
+
 
 def main():
     if not APP_PATH.exists():
@@ -102,13 +105,19 @@ def main():
     pattern = r'(?ms)def\s+extract_youtube_transcript\([^)]*\):\s*.*?(?=^\s*@app\.route\(|^\s*if\s+__name__\s*==\s*[\'"]__main__[\'"]\s*:)'
 
     if not re.search(pattern, src):
-        print("⚠️  既存の関数ブロックを特定できませんでした。ファイル末尾に新定義を追記します。")
+        print(
+            "⚠️  既存の関数ブロックを特定できませんでした。ファイル末尾に新定義を追記します。"
+        )
         # 追記（最悪ケースでも新関数を提供）
-        backup = APP_PATH.with_suffix(APP_PATH.suffix + f".bak-{datetime.now():%Y%m%d-%H%M%S}")
+        backup = APP_PATH.with_suffix(
+            APP_PATH.suffix + f".bak-{datetime.now():%Y%m%d-%H%M%S}"
+        )
         backup.write_text(src, encoding="utf-8")
         APP_PATH.write_text(src.rstrip() + "\n\n" + replacement, encoding="utf-8")
         print(f"✅ バックアップ作成: {backup.name}")
-        print("✅ 新しい関数を末尾に追記しました（ルートは既存のままでも extract_* を呼んでいれば有効）")
+        print(
+            "✅ 新しい関数を末尾に追記しました（ルートは既存のままでも extract_* を呼んでいれば有効）"
+        )
         return
 
     # 正常置換
@@ -118,12 +127,15 @@ def main():
         return
 
     # バックアップ＆保存
-    backup = APP_PATH.with_suffix(APP_PATH.suffix + f".bak-{datetime.now():%Y%m%d-%H%M%S}")
+    backup = APP_PATH.with_suffix(
+        APP_PATH.suffix + f".bak-{datetime.now():%Y%m%d-%H%M%S}"
+    )
     backup.write_text(src, encoding="utf-8")
     APP_PATH.write_text(new_src, encoding="utf-8")
 
     print(f"✅ 置換完了: {APP_PATH}")
     print(f"🗂️  バックアップ: {backup.name}")
+
 
 if __name__ == "__main__":
     main()

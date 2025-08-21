@@ -4,18 +4,20 @@
 import socket
 import threading
 import time
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 PORT = 8099
 
+
 class UltraLightHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == '/':
+        if self.path == "/":
             self.send_response(200)
-            self.send_header('Content-type', 'text/html; charset=utf-8')
+            self.send_header("Content-type", "text/html; charset=utf-8")
             self.end_headers()
-            
-            html = '''<!DOCTYPE html>
+
+            html = (
+                """<!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -73,7 +75,9 @@ class UltraLightHandler(BaseHTTPRequestHandler):
         <p class="success">✅ Ultra Light Server 起動成功</p>
         
         <div style="background: rgba(255, 255, 255, 0.2); padding: 15px; border-radius: 10px; margin: 15px 0;">
-            <strong>ポート:</strong> ''' + str(PORT) + '''<br>
+            <strong>ポート:</strong> """
+                + str(PORT)
+                + """<br>
             <strong>プロセス:</strong> Python HTTP Server<br>
             <strong>エフェクト:</strong> 赤基調水面反射<br>
             <strong>ステータス:</strong> 正常稼働中
@@ -83,39 +87,42 @@ class UltraLightHandler(BaseHTTPRequestHandler):
         <p>最軽量サーバーによる動作確認済み</p>
     </div>
 </body>
-</html>'''
-            
-            self.wfile.write(html.encode('utf-8'))
+</html>"""
+            )
+
+            self.wfile.write(html.encode("utf-8"))
         else:
             self.send_response(404)
             self.end_headers()
-            self.wfile.write(b'Not Found')
-    
+            self.wfile.write(b"Not Found")
+
     def log_message(self, format, *args):
         return  # ログ出力を抑制
+
 
 def check_port_available(port):
     """ポートが利用可能か確認"""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         try:
-            s.bind(('localhost', port))
+            s.bind(("localhost", port))
             return True
         except:
             return False
+
 
 def main():
     if not check_port_available(PORT):
         print(f"❌ ポート {PORT} は既に使用されています")
         return False
-    
+
     try:
-        server = HTTPServer(('0.0.0.0', PORT), UltraLightHandler)
+        server = HTTPServer(("0.0.0.0", PORT), UltraLightHandler)
         print(f"🚀 Ultra Light Server 起動成功")
         print(f"📱 http://localhost:{PORT}")
         print(f"✅ 赤基調水面反射エフェクト有効")
-        
+
         server.serve_forever()
-        
+
     except KeyboardInterrupt:
         print("\n📴 サーバー停止")
         server.shutdown()
@@ -123,6 +130,7 @@ def main():
     except Exception as e:
         print(f"❌ エラー: {e}")
         return False
+
 
 if __name__ == "__main__":
     success = main()

@@ -10,16 +10,16 @@ import random
 import socket
 import time
 from datetime import datetime
+from functools import wraps
 from urllib.parse import parse_qs, urlparse
 
+import google.generativeai as genai
 import googleapiclient.discovery
 import googleapiclient.errors
 import requests
 from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
-from functools import wraps
-import google.generativeai as genai
 from youtube_transcript_api import (NoTranscriptFound, TranscriptsDisabled,
                                     YouTubeTranscriptApi)
 
@@ -83,40 +83,42 @@ def get_transcript_api_token():
     if not token:
         # .envファイルから取得を試みる
         token = os.getenv("TRANSCRIPT_API_TOKEN")
-    
+
     if not token:
         logger.error("Transcript API token not found in environment variables")
         raise ValueError(
             "Transcript APIトークンが設定されていません。環境変数TRANSCRIPT_API_TOKENを設定してください。"
         )
-    
+
     return token
 
 
 def require_auth(f):
     """認証が必要なエンドポイント用デコレータ"""
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        auth_header = request.headers.get('Authorization')
+        auth_header = request.headers.get("Authorization")
         if not auth_header:
-            return jsonify({'error': 'Authorization header required'}), 401
-        
+            return jsonify({"error": "Authorization header required"}), 401
+
         try:
-            scheme, token = auth_header.split(' ', 1)
-            if scheme.lower() != 'bearer':
-                return jsonify({'error': 'Bearer token required'}), 401
-            
+            scheme, token = auth_header.split(" ", 1)
+            if scheme.lower() != "bearer":
+                return jsonify({"error": "Bearer token required"}), 401
+
             expected_token = get_transcript_api_token()
             if token != expected_token:
-                return jsonify({'error': 'Invalid token'}), 401
-                
+                return jsonify({"error": "Invalid token"}), 401
+
         except ValueError:
-            return jsonify({'error': 'Invalid Authorization header format'}), 401
+            return jsonify({"error": "Invalid Authorization header format"}), 401
         except Exception as e:
             logger.error(f"Auth error: {e}")
-            return jsonify({'error': 'Authentication failed'}), 401
-        
+            return jsonify({"error": "Authentication failed"}), 401
+
         return f(*args, **kwargs)
+
     return decorated_function
 
 
@@ -412,7 +414,7 @@ def format_text_with_gemini(text):
 
 整形されたテキスト:"""
 
-        model = gemini_client.GenerativeModel('gemini-2.0-flash-001')
+        model = gemini_client.GenerativeModel("gemini-2.0-flash-001")
         response = model.generate_content(
             prompt,
             generation_config=genai.GenerationConfig(
@@ -458,7 +460,7 @@ def summarize_with_gemini(text):
 
 詳細な要約:"""
 
-        model = gemini_client.GenerativeModel('gemini-2.0-flash-001')
+        model = gemini_client.GenerativeModel("gemini-2.0-flash-001")
         response = model.generate_content(
             summary_prompt,
             generation_config=genai.GenerationConfig(
@@ -512,15 +514,17 @@ def extract():
 
         # Cloud Run環境でURL直接取得を禁止
         is_cloud_run = os.environ.get("K_SERVICE") is not None
-        
+
         if transcript_text:
             # ローカル抽出されたテキストを処理
-            logger.info(f"Processing locally extracted transcript ({len(transcript_text)} chars)")
-            
+            logger.info(
+                f"Processing locally extracted transcript ({len(transcript_text)} chars)"
+            )
+
             # プレーンテキストの場合は自動でGemini AIで整形と要約
             formatted_transcript = transcript_text
             summary_text = ""
-            
+
             if format_type == "txt" and gemini_client:
                 try:
                     logger.info("Auto-formatting transcript with Gemini AI")
@@ -529,7 +533,9 @@ def extract():
                     logger.info("Auto-summarizing transcript with Gemini AI")
                     summary_text = summarize_with_gemini(formatted_transcript)
                 except Exception as e:
-                    logger.warning(f"Auto-formatting/summarizing failed, using original text: {e}")
+                    logger.warning(
+                        f"Auto-formatting/summarizing failed, using original text: {e}"
+                    )
 
             response_data = {
                 "success": True,
@@ -540,20 +546,25 @@ def extract():
                 "stats": {
                     "total_characters": len(transcript_text),
                     "language": lang,
-                }
+                },
             }
 
             logger.info("Successfully processed locally extracted transcript")
             return jsonify(response_data)
-        
+
         elif url:
             # URL直接取得（Cloud Run環境では禁止）
             if is_cloud_run:
-                return jsonify({
-                    "error": "Cloud環境ではURLからの直接取得は無効です。字幕テキストかSRTファイルを送信してください。",
-                    "suggestion": "ローカルPCで字幕を抽出し、transcript_textパラメータで送信してください。"
-                }), 400
-            
+                return (
+                    jsonify(
+                        {
+                            "error": "Cloud環境ではURLからの直接取得は無効です。字幕テキストかSRTファイルを送信してください。",
+                            "suggestion": "ローカルPCで字幕を抽出し、transcript_textパラメータで送信してください。",
+                        }
+                    ),
+                    400,
+                )
+
             logger.info(f"Processing URL: {url}, Lang: {lang}, Format: {format_type}")
 
             # 動画ID取得
@@ -601,7 +612,7 @@ def extract():
 
             logger.info(f"Successfully processed video {video_id}")
             return jsonify(response_data)
-        
+
         else:
             return jsonify({"error": "URLまたはtranscript_textが必要です"}), 400
 

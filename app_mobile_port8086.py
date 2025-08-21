@@ -3,12 +3,12 @@ YouTube Transcript Extractor - Mobile Version (Port 8086)
 ポート競合回避版
 """
 
+import base64
 import json
 import logging
 import os
 import socket
 import time
-import base64
 from datetime import datetime
 from io import BytesIO
 from urllib.parse import parse_qs, urlparse
@@ -18,8 +18,7 @@ from flask_cors import CORS
 
 # 最小限の依存関係でまず動作確認
 logging.basicConfig(
-    level=logging.INFO, 
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -32,6 +31,7 @@ CORS(app, origins=["*"], supports_credentials=True)
 # ポート設定（競合回避）
 PORT = 8086
 
+
 def get_local_ip():
     """ローカルIPアドレスを取得"""
     try:
@@ -43,25 +43,27 @@ def get_local_ip():
     except:
         return "127.0.0.1"
 
+
 def get_video_id(url):
     """YouTube URLから動画IDを抽出（簡易版）"""
     try:
         parsed_url = urlparse(url)
-        
+
         # youtu.be形式
         if parsed_url.hostname == "youtu.be":
             return parsed_url.path[1:]
-        
+
         # youtube.com形式
         if parsed_url.hostname in ("www.youtube.com", "youtube.com"):
             if parsed_url.path == "/watch":
                 params = parse_qs(parsed_url.query)
                 return params.get("v", [None])[0]
-        
+
         raise ValueError(f"無効なYouTube URLです: {url}")
     except Exception as e:
         logger.error(f"Error extracting video ID: {e}")
         raise
+
 
 @app.route("/")
 def index():
@@ -203,15 +205,19 @@ def index():
     </html>
     """
 
+
 @app.route("/health")
 def health():
     """ヘルスチェック"""
-    return jsonify({
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "port": PORT,
-        "message": "YouTube字幕抽出ツール - スマホ版 (Port 8086)"
-    })
+    return jsonify(
+        {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "port": PORT,
+            "message": "YouTube字幕抽出ツール - スマホ版 (Port 8086)",
+        }
+    )
+
 
 @app.route("/test")
 def test():
@@ -220,39 +226,42 @@ def test():
     if test_url:
         try:
             video_id = get_video_id(test_url)
-            return jsonify({
-                "success": True,
-                "url": test_url,
-                "video_id": video_id,
-                "message": "URL解析成功"
-            })
+            return jsonify(
+                {
+                    "success": True,
+                    "url": test_url,
+                    "video_id": video_id,
+                    "message": "URL解析成功",
+                }
+            )
         except Exception as e:
-            return jsonify({
-                "success": False,
-                "error": str(e)
-            }), 400
+            return jsonify({"success": False, "error": str(e)}), 400
     else:
-        return jsonify({
-            "message": "テスト用: ?url=https://www.youtube.com/watch?v=VIDEO_ID"
-        })
+        return jsonify(
+            {"message": "テスト用: ?url=https://www.youtube.com/watch?v=VIDEO_ID"}
+        )
+
 
 if __name__ == "__main__":
     local_ip = get_local_ip()
-    
-    print("\n" + "="*60)
+
+    print("\n" + "=" * 60)
     print("🎬 YouTube Transcript Extractor - Mobile Version (Port 8086)")
-    print("="*60)
+    print("=" * 60)
     print(f"🚀 Starting server on port {PORT}...")
     print(f"📱 Access URLs:")
     print(f"   Local:    http://127.0.0.1:{PORT}")
     print(f"   Network:  http://{local_ip}:{PORT}")
-    print(f"🔥 Test:     http://127.0.0.1:{PORT}/test?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ")
-    print("="*60 + "\n")
-    
+    print(
+        f"🔥 Test:     http://127.0.0.1:{PORT}/test?url=https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    )
+    print("=" * 60 + "\n")
+
     try:
         app.run(host="0.0.0.0", port=PORT, debug=True, use_reloader=False)
     except Exception as e:
         print(f"❌ エラー: {e}")
         import traceback
+
         traceback.print_exc()
         input("Enterキーで終了...")

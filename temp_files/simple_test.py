@@ -3,10 +3,12 @@
 Simple test server to check basic Flask functionality on port 8085
 """
 
-from flask import Flask
 import sys
 
+from flask import Flask
+
 app = Flask(__name__)
+
 
 @app.route("/")
 def index():
@@ -32,9 +34,11 @@ def index():
     </html>
     """
 
+
 @app.route("/health")
 def health():
     return {"status": "ok", "port": 8085, "message": "Simple test server running"}
+
 
 if __name__ == "__main__":
     print("=" * 50)
@@ -43,12 +47,13 @@ if __name__ == "__main__":
     print("🚀 ポート8085で起動中...")
     print("📱 アクセス: http://localhost:8085")
     print("=" * 50)
-    
+
     try:
         app.run(host="0.0.0.0", port=8085, debug=True, use_reloader=False)
     except Exception as e:
         print(f"❌ エラー: {e}")
         print("詳細:")
         import traceback
+
         traceback.print_exc()
         input("エラーが発生しました。Enterキーを押して終了...")

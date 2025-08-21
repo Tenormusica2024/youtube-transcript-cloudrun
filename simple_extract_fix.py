@@ -83,6 +83,7 @@ def extract_youtube_transcript(video_url, language_code="ja"):
         return {"success": False, "error": str(e)}
 '''
 
+
 def main():
     """メイン処理"""
     if not APP_PATH.exists():
@@ -90,19 +91,21 @@ def main():
         return False
 
     src = APP_PATH.read_text(encoding="utf-8")
-    
+
     # バックアップ作成
-    backup = APP_PATH.with_suffix(APP_PATH.suffix + f".bak3-{datetime.now():%Y%m%d-%H%M%S}")
+    backup = APP_PATH.with_suffix(
+        APP_PATH.suffix + f".bak3-{datetime.now():%Y%m%d-%H%M%S}"
+    )
     backup.write_text(src, encoding="utf-8")
-    
+
     # 既存の関数を検索して置換
     import re
-    
+
     # 現在の関数ブロックを削除
     pattern = r'def extract_youtube_transcript\(video_url, language_code="ja"\):.*?(?=\n@app\.route\(|\nif __name__|\n\ndef |\Z)'
-    
+
     new_src = re.sub(pattern, new_function.strip(), src, flags=re.DOTALL)
-    
+
     if new_src != src:
         APP_PATH.write_text(new_src, encoding="utf-8")
         print(f"✅ 関数置換完了: {APP_PATH}")
@@ -111,6 +114,7 @@ def main():
     else:
         print("⚠️  関数ブロックが見つかりませんでした")
         return False
+
 
 if __name__ == "__main__":
     success = main()

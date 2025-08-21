@@ -31,13 +31,20 @@ from youtube_transcript_api import (NoTranscriptFound, TranscriptsDisabled,
 try:
     from performance_optimizer import AppStoreOptimizer, PerformanceOptimizer
 except Exception:
+
     class PerformanceOptimizer:
-        def __init__(self, app): pass
+        def __init__(self, app):
+            pass
+
     class AppStoreOptimizer:
         @staticmethod
-        def optimize_for_mobile(app): pass
+        def optimize_for_mobile(app):
+            pass
+
         @staticmethod
-        def add_app_store_headers(app): pass
+        def add_app_store_headers(app):
+            pass
+
 
 # 環境変数読み込み
 load_dotenv()
@@ -70,6 +77,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 # ポート設定を5001に変更
 PORT = 5001
 
+
 # Security headers middleware
 @app.after_request
 def add_security_headers(response):
@@ -77,9 +85,9 @@ def add_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers[
-        "Strict-Transport-Security"
-    ] = "max-age=31536000; includeSubDomains"
+    response.headers["Strict-Transport-Security"] = (
+        "max-age=31536000; includeSubDomains"
+    )
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self' https:;"
     )
@@ -127,6 +135,7 @@ CORS(
     ],
     supports_credentials=True,
 )
+
 
 def get_ngrok_url():
     """ngrok APIから現在のURLを動的取得"""
@@ -437,7 +446,9 @@ def extract_transcript():
     try:
         data = request.get_json()
         video_url = data.get("url", "")
-        language = data.get("lang", data.get("language", "ja"))  # HTML sends 'lang', fallback to 'language'
+        language = data.get(
+            "lang", data.get("language", "ja")
+        )  # HTML sends 'lang', fallback to 'language'
         format_text = data.get("format", True)
 
         if not video_url:
@@ -524,14 +535,15 @@ def extract_transcript():
                 "title": f"YouTube動画 (ID: {result['video_id']})",
                 "transcript": cleaned_formatted_text,
                 "original_transcript": result["transcript"],
-                "summary": summary_text or "AI要約機能を使用するにはGEMINI_API_KEYが必要です。",
+                "summary": summary_text
+                or "AI要約機能を使用するにはGEMINI_API_KEYが必要です。",
                 "stats": {
                     "segments": segments_count,
                     "characters": char_count,
-                    "language": result["language"]
+                    "language": result["language"],
                 },
                 "video_id": result["video_id"],
-                "language": result["language"]
+                "language": result["language"],
             }
         )
 
@@ -650,7 +662,9 @@ if __name__ == "__main__":
     logger.info("🚀 YouTube字幕抽出サーバー（Port 5001 フル機能版）を起動中...")
     logger.info(f"📱 ローカルアクセス: http://127.0.0.1:{PORT}")
     logger.info(f"🔒 HTTPS対応: {app.config.get('PREFERRED_URL_SCHEME')}")
-    logger.info(f"🤖 AI要約機能: {'有効' if get_ai_api_key() else '無効（APIキー未設定）'}")
+    logger.info(
+        f"🤖 AI要約機能: {'有効' if get_ai_api_key() else '無効（APIキー未設定）'}"
+    )
 
     # サーバー起動
     app.run(host="0.0.0.0", port=PORT, debug=False, threaded=True)
