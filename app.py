@@ -12,6 +12,8 @@ import time
 from datetime import datetime
 from functools import wraps
 from urllib.parse import parse_qs, urlparse
+import uuid
+import shutil
 
 import google.generativeai as genai
 import googleapiclient.discovery
@@ -460,6 +462,23 @@ def format_timestamp(seconds):
     return f"{hours:02d}:{minutes:02d}:{seconds:06.3f}".replace(".", ",")
 
 
+def load_prompt_from_file(prompt_file, text):
+    """外部ファイルからプロンプトを読み込み、テキストを置換"""
+    try:
+        prompt_path = os.path.join(os.path.dirname(__file__), "prompts", prompt_file)
+        
+        if not os.path.exists(prompt_path):
+            logger.warning(f"Prompt file not found: {prompt_path}")
+            return None
+            
+        with open(prompt_path, 'r', encoding='utf-8') as f:
+            prompt_template = f.read()
+            
+        return prompt_template.format(text=text)
+    except Exception as e:
+        logger.error(f"Error loading prompt from {prompt_file}: {e}")
+        return None
+
 def format_text_with_gemini(text):
     """Gemini AIを使用してテキストを可読性良く整形"""
     if not gemini_client:
@@ -467,7 +486,12 @@ def format_text_with_gemini(text):
         return text
 
     try:
-        prompt = f"""以下のYouTube字幕テキストを読みやすく整形してください。
+        # 外部ファイルからプロンプトを読み込み
+        prompt = load_prompt_from_file("format_prompt.txt", text)
+        
+        if not prompt:
+            # フォールバック用の基本プロンプト
+            prompt = f"""以下のYouTube字幕テキストを読みやすく整形してください。
 
 【重要な制約】:
 - 文字や単語を一切変更・追加・削除しないでください
@@ -505,6 +529,109 @@ def format_text_with_gemini(text):
         return text
 
 
+def save_to_archive(video_id, title, original_text, formatted_text, summary, url=None):
+    """要約結果をアーカイブに保存"""
+    try:
+        archive_dir = os.path.join(os.path.dirname(__file__), "archive")
+        os.makedirs(archive_dir, exist_ok=True)
+        
+        # ユニークなファイル名を生成
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        unique_id = str(uuid.uuid4())[:8]
+        filename = f"{timestamp}_{video_id}_{unique_id}.json"
+        
+        archive_data = {
+            "id": unique_id,
+            "timestamp": datetime.now().isoformat(),
+            "video_id": video_id,
+            "title": title,
+            "url": url,
+            "original_text": original_text,
+            "formatted_text": formatted_text,
+            "summary": summary,
+            "stats": {
+                "original_length": len(original_text),
+                "formatted_length": len(formatted_text),
+                "summary_length": len(summary)
+            }
+        }
+        
+        archive_path = os.path.join(archive_dir, filename)
+        with open(archive_path, 'w', encoding='utf-8') as f:
+            json.dump(archive_data, f, ensure_ascii=False, indent=2)
+        
+        logger.info(f"Archive saved: {filename}")
+        return unique_id
+        
+    except Exception as e:
+        logger.error(f"Error saving to archive: {e}")
+        return None
+
+def get_archive_list(limit=50, offset=0):
+    """アーカイブリストを取得"""
+    try:
+        archive_dir = os.path.join(os.path.dirname(__file__), "archive")
+        if not os.path.exists(archive_dir):
+            return {"archives": [], "total": 0}
+        
+        # ファイル一覧を取得してソート
+        archive_files = []
+        for filename in os.listdir(archive_dir):
+            if filename.endswith('.json'):
+                filepath = os.path.join(archive_dir, filename)
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                    
+                    archive_files.append({
+                        "filename": filename,
+                        "id": data.get("id", "unknown"),
+                        "timestamp": data.get("timestamp", ""),
+                        "video_id": data.get("video_id", ""),
+                        "title": data.get("title", ""),
+                        "url": data.get("url", ""),
+                        "summary_preview": data.get("summary", "")[:100] + "..." if len(data.get("summary", "")) > 100 else data.get("summary", ""),
+                        "stats": data.get("stats", {})
+                    })
+                except Exception as e:
+                    logger.warning(f"Error reading archive file {filename}: {e}")
+                    continue
+        
+        # タイムスタンプでソート（新しい順）
+        archive_files.sort(key=lambda x: x["timestamp"], reverse=True)
+        
+        # ページング
+        total = len(archive_files)
+        paginated_files = archive_files[offset:offset + limit]
+        
+        return {
+            "archives": paginated_files,
+            "total": total,
+            "offset": offset,
+            "limit": limit
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting archive list: {e}")
+        return {"archives": [], "total": 0}
+
+def get_archive_by_id(archive_id):
+    """IDでアーカイブを取得"""
+    try:
+        archive_dir = os.path.join(os.path.dirname(__file__), "archive")
+        
+        for filename in os.listdir(archive_dir):
+            if filename.endswith('.json') and archive_id in filename:
+                filepath = os.path.join(archive_dir, filename)
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error getting archive by ID {archive_id}: {e}")
+        return None
+
 def summarize_with_gemini(text):
     """Gemini AIを使用してテキストを要約"""
     if not gemini_client:
@@ -512,7 +639,12 @@ def summarize_with_gemini(text):
         return ""
 
     try:
-        summary_prompt = f"""以下のYouTube動画の字幕テキストを詳細に要約してください。
+        # 外部ファイルからプロンプトを読み込み
+        summary_prompt = load_prompt_from_file("summary_prompt.txt", text)
+        
+        if not summary_prompt:
+            # フォールバック用の基本プロンプト
+            summary_prompt = f"""以下のYouTube動画の字幕テキストを詳細に要約してください。
 
 【要約の要求】:
 1. 重要な情報は全て残してください
@@ -638,12 +770,24 @@ def extract():
                         f"Auto-formatting/summarizing failed, using original text: {e}"
                     )
 
+            # アーカイブに保存
+            archive_id = save_to_archive(
+                video_id="locally_extracted",
+                title="ローカル抽出字幕", 
+                original_text=transcript_text,
+                formatted_text=formatted_transcript,
+                summary=summary_text,
+                url=url
+            )
+
             response_data = {
                 "success": True,
                 "video_id": "locally_extracted",
                 "title": "ローカル抽出字幕",
                 "formatted_transcript": formatted_transcript,
+                "original_transcript": transcript_text,
                 "summary": summary_text,
+                "archive_id": archive_id,
                 "stats": {
                     "total_characters": len(transcript_text),
                     "language": lang,
@@ -695,6 +839,17 @@ def extract():
                         f"Auto-formatting/summarizing failed, using original text: {e}"
                     )
 
+            # アーカイブに保存
+            original_transcript_text = " ".join([item["text"] for item in transcript])
+            archive_id = save_to_archive(
+                video_id=video_id,
+                title=title,
+                original_text=original_transcript_text,
+                formatted_text=formatted_transcript,
+                summary=summary_text,
+                url=url
+            )
+
             # 統計情報
             stats = {
                 "total_segments": len(transcript),
@@ -707,7 +862,9 @@ def extract():
                 "video_id": video_id,
                 "title": title,
                 "formatted_transcript": formatted_transcript,
+                "original_transcript": " ".join([item["text"] for item in transcript]),
                 "summary": summary_text,
+                "archive_id": archive_id,
                 "stats": stats,
             }
 
@@ -804,6 +961,56 @@ def not_found(e):
     """404エラーハンドラー"""
     return jsonify({"error": "エンドポイントが見つかりません"}), 404
 
+
+@app.route("/archive")
+def archive_list():
+    """アーカイブリストを取得"""
+    try:
+        limit = int(request.args.get('limit', 50))
+        offset = int(request.args.get('offset', 0))
+        
+        archive_data = get_archive_list(limit=limit, offset=offset)
+        return jsonify(archive_data)
+        
+    except ValueError as e:
+        return jsonify({"error": f"無効なパラメータです: {str(e)}"}), 400
+    except Exception as e:
+        logger.error(f"Error in archive list endpoint: {e}")
+        return jsonify({"error": "アーカイブリストの取得に失敗しました"}), 500
+
+@app.route("/archive/<archive_id>")
+def archive_detail(archive_id):
+    """アーカイブの詳細を取得"""
+    try:
+        archive_data = get_archive_by_id(archive_id)
+        
+        if archive_data:
+            return jsonify(archive_data)
+        else:
+            return jsonify({"error": "アーカイブが見つかりません"}), 404
+            
+    except Exception as e:
+        logger.error(f"Error in archive detail endpoint: {e}")
+        return jsonify({"error": "アーカイブの取得に失敗しました"}), 500
+
+@app.route("/archive/<archive_id>", methods=["DELETE"])
+def delete_archive(archive_id):
+    """アーカイブを削除"""
+    try:
+        archive_dir = os.path.join(os.path.dirname(__file__), "archive")
+        
+        for filename in os.listdir(archive_dir):
+            if filename.endswith('.json') and archive_id in filename:
+                filepath = os.path.join(archive_dir, filename)
+                os.remove(filepath)
+                logger.info(f"Archive deleted: {filename}")
+                return jsonify({"success": True, "message": "アーカイブを削除しました"})
+        
+        return jsonify({"error": "アーカイブが見つかりません"}), 404
+        
+    except Exception as e:
+        logger.error(f"Error deleting archive {archive_id}: {e}")
+        return jsonify({"error": "アーカイブの削除に失敗しました"}), 500
 
 @app.errorhandler(500)
 def server_error(e):
