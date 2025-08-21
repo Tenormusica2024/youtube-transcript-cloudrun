@@ -61,6 +61,16 @@
             font-size: 1.3rem;
         }
         
+        .version-info {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.75rem;
+            font-weight: 400;
+            margin-left: auto;
+            z-index: 1;
+            position: relative;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
         .btn-cache-clear {
             border: 1px solid rgba(255, 255, 255, 0.5);
             color: rgba(255, 255, 255, 0.9);
@@ -435,6 +445,9 @@
             <span class="navbar-brand">
                 <i class="bi bi-youtube"></i>
                 YouTube字幕抽出ツール
+            </span>
+            <span class="version-info">
+                v1.5.0-enhanced-effects
             </span>
             <button type="button" class="btn btn-cache-clear" onclick="forceClearCache()" 
                     title="ページを強制更新してキャッシュをクリア">
@@ -1099,13 +1112,14 @@
                     position: absolute;
                     width: ${size}px;
                     height: ${size}px;
-                    background: radial-gradient(circle, rgba(255, 255, 255, 0.6) 0%, rgba(255, 200, 200, 0.3) 40%, transparent 70%);
+                    background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 30%, rgba(255, 200, 200, 0.5) 60%, transparent 80%);
                     border-radius: 50%;
                     left: ${startX}%;
                     top: ${startY}%;
                     animation: floatingOrb${i} ${duration}s ease-in-out infinite ${delay}s;
-                    filter: blur(0.5px);
+                    filter: blur(1px);
                     mix-blend-mode: screen;
+                    box-shadow: 0 0 30px rgba(255, 255, 255, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.3);
                 `;
                 
                 // Generate unique keyframes for each orb - Large movements
@@ -1121,19 +1135,19 @@
                     @keyframes ${keyframeName} {
                         0%, 100% {
                             transform: translate(0, 0) scale(1);
-                            opacity: 0.3;
+                            opacity: 0.6;
                         }
                         25% {
                             transform: translate(${moveX1}px, ${moveY1}px) scale(${0.7 + Math.random() * 0.3});
-                            opacity: 0.6;
+                            opacity: 0.9;
                         }
                         50% {
                             transform: translate(${moveX2}px, ${moveY2}px) scale(${0.8 + Math.random() * 0.4});
-                            opacity: 0.4;
+                            opacity: 0.7;
                         }
                         75% {
                             transform: translate(${moveX3}px, ${moveY3}px) scale(${0.75 + Math.random() * 0.25});
-                            opacity: 0.7;
+                            opacity: 0.8;
                         }
                     }
                 `;
