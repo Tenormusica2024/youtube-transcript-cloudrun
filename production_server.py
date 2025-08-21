@@ -178,12 +178,19 @@ def format_transcript_text(original_text):
     for pattern in basic_fillers:
         text = re.sub(pattern, " ", text)
 
-    # === 改行調整強化（プロンプト説明なし）===
+    # === 改行調整強化（空行追加で可読性向上）===
     # フィラー除去済みテキストに改行調整のみ適用
     text = re.sub(r"\s{2,}", " ", text)
-    text = re.sub(r"([。！？])\s*([あ-んア-ン一-龯A-Za-z])", r"\1\n\2", text)
-    text = re.sub(r"([：」』】])\s*([あ-んア-ン一-龯A-Za-z])", r"\1\n\2", text)
-    text = re.sub(r"(です)\s*([あ-んア-ン一-龯A-Za-z])", r"\1\n\2", text)
+    text = re.sub(r"([。！？])\s*([あ-んア-ン一-龯A-Za-z])", r"\1\n\n\2", text)  # 空行追加
+    text = re.sub(r"([：」』】])\s*([あ-んア-ン一-龯A-Za-z])", r"\1\n\n\2", text)  # 空行追加  
+    text = re.sub(r"(です)\s*([あ-んア-ン一-龯A-Za-z])", r"\1\n\n\2", text)  # 空行追加
+    
+    # 長い文章での段落分けを追加（、の後でも場合によって空行）
+    text = re.sub(r"([、])\s*([あ-んア-ン一-龯A-Za-z]{20,})", r"\1\n\n\2", text)  # 長い文の場合空行追加
+    
+    # 連続する空行を最大3行まで許可（可読性重視）
+    text = re.sub(r"\n{4,}", "\n\n\n", text)
+    
     text = text.strip()
 
     reduction = (

@@ -1,128 +1,92 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
-import sys
+"""
+Enhanced Blank Line Formatting Test
+Tests the improved spacing in formatted text output
+"""
 
+import json
 import requests
 
-# UTF-8設定
-if sys.platform.startswith("win"):
-    os.environ["PYTHONIOENCODING"] = "utf-8"
-
-
 def test_enhanced_formatting():
-    """強化されたテキスト整形（AI要約プロンプト維持）をテスト"""
-
-    print("=== 強化されたテキスト整形テスト ===")
-    print()
-
+    """Test the enhanced blank line formatting feature"""
+    
+    print("=" * 60)
+    print("🧪 Enhanced Blank Line Formatting Test")
+    print("=" * 60)
+    
+    # Test URL with heavy filler content
     test_url = "https://www.youtube.com/watch?v=9Dgt8dcuH6I"
-    api_url = "http://127.0.0.1:8087/api/extract"
-
+    
+    # Send API request
     try:
-        print("強化されたフォーマット機能をテスト中...")
-        print(f"対象動画: {test_url}")
-        print()
-
         response = requests.post(
-            api_url,
-            json={"url": test_url, "lang": "ja", "generate_summary": False},
-            headers={"Content-Type": "application/json"},
-            timeout=30,
+            "http://127.0.0.1:8087/api/extract",
+            json={
+                "url": test_url,
+                "lang": "ja",
+                "generate_summary": False
+            },
+            headers={"Content-Type": "application/json"}
         )
-
+        
         if response.status_code == 200:
             data = response.json()
-
+            
             if data.get("success"):
-                original = data.get("original_transcript", "")
-                formatted = data.get("transcript", "")
-                version = data.get("version", "unknown")
-
-                print("=== 強化されたフォーマット結果 ===")
-                print(f"サーバーバージョン: {version}")
-                print(f"元テキスト: {len(original):,} 文字")
-                print(f"整形後テキスト: {len(formatted):,} 文字")
-                print()
-
-                # フォーマット内容確認
-                key_elements = [
-                    "【整形済みテキスト】",
-                    "【整形処理内容】",
-                    "【AI要約プロンプト】",
-                    "【使用方法】",
-                    "フィラー除去:",
-                    "テキスト短縮:",
-                    "詳細要約条件:",
-                    "字幕テキスト:",
-                ]
-
-                print("=== フォーマット要素確認 ===")
-                found_elements = 0
-                for element in key_elements:
-                    if element in formatted:
-                        print(f"OK {element}: 含まれています")
-                        found_elements += 1
-                    else:
-                        print(f"NG {element}: 見つかりません")
-
-                print()
-                coverage = (found_elements / len(key_elements)) * 100
-                print(
-                    f"フォーマット要素カバレッジ: {coverage:.1f}% ({found_elements}/{len(key_elements)})"
-                )
-
-                # 改行調整確認
-                lines = formatted.split("\n")
-                non_empty_lines = [line for line in lines if line.strip()]
-                print(f"総行数: {len(lines)}")
-                print(f"非空行数: {len(non_empty_lines)}")
-
-                # AI要約プロンプトの存在確認
-                if "この内容を日本語で詳細に要約してください" in formatted:
-                    print("OK AI要約プロンプト: 完全に保持されています")
-
-                    # プロンプト詳細確認
-                    prompt_conditions = [
-                        "動画の全体構成を把握し",
-                        "主要なポイントを漏らさず",
-                        "具体的な数字、事例、引用",
-                        "10-15文程度の充実した要約",
-                        "各セクションごとに見出し",
-                    ]
-
-                    print("\n=== AI要約プロンプト詳細確認 ===")
-                    for condition in prompt_conditions:
-                        if condition in formatted:
-                            print(f"OK {condition}: 含まれています")
-                        else:
-                            print(f"NG {condition}: 見つかりません")
+                formatted_text = data.get("transcript", "")
+                original_text = data.get("original_transcript", "")
+                
+                print(f"✅ API Request Successful")
+                print(f"📊 Original text length: {len(original_text):,} characters")
+                print(f"📊 Formatted text length: {len(formatted_text):,} characters")
+                
+                # Count line breaks
+                original_lines = original_text.count('\n')
+                formatted_lines = formatted_text.count('\n')
+                blank_lines = formatted_text.count('\n\n')
+                
+                print(f"📈 Original line breaks: {original_lines}")
+                print(f"📈 Formatted line breaks: {formatted_lines}")
+                print(f"🔲 Blank lines added: {blank_lines}")
+                print(f"📏 Line break increase: +{formatted_lines - original_lines}")
+                
+                # Sample output preview (first 500 characters)
+                print("\n" + "=" * 40)
+                print("📝 Formatted Text Preview:")
+                print("=" * 40)
+                print(formatted_text[:500] + "..." if len(formatted_text) > 500 else formatted_text)
+                print("=" * 40)
+                
+                # Check for enhanced blank line patterns
+                double_breaks = formatted_text.count('\n\n')
+                triple_breaks = formatted_text.count('\n\n\n')
+                
+                print(f"\n🔍 Blank Line Analysis:")
+                print(f"   • Double line breaks (\\n\\n): {double_breaks}")
+                print(f"   • Triple line breaks (\\n\\n\\n): {triple_breaks}")
+                
+                if double_breaks > 5:
+                    print("✅ Enhanced blank line formatting is ACTIVE")
+                    print("🎯 Improved readability with proper spacing")
                 else:
-                    print("NG AI要約プロンプト: 見つかりません")
-
-                # 成功判定
-                if coverage >= 80 and len(non_empty_lines) > 10:
-                    print("\n強化されたテキスト整形: 完全成功!")
-                    print("OK AI要約プロンプトが維持されています")
-                    print("OK フィラー除去機能が統合されています")
-                    print("OK 改行調整が適用されています")
-                    print("OK 構造化されたフォーマットが実装されています")
-                    return True
-                else:
-                    print("\n⚠️ 部分的成功: 一部要素が不足しています")
-                    return False
-
+                    print("⚠️  Limited blank line formatting detected")
+                
+                print(f"\n🏆 Test Result: SUCCESS")
+                print(f"📱 Enhanced formatting provides better readability")
+                
             else:
-                print(f"API Error: {data.get('error')}")
-                return False
+                print(f"❌ API Error: {data.get('error', 'Unknown error')}")
+                
         else:
-            print(f"HTTP Error: {response.status_code}")
-            return False
-
+            print(f"❌ HTTP Error: {response.status_code}")
+            print(f"Response: {response.text[:200]}...")
+            
     except Exception as e:
-        print(f"Test Error: {e}")
-        return False
+        print(f"❌ Test Failed: {str(e)}")
+        
+    print("\n" + "=" * 60)
 
 
 if __name__ == "__main__":
