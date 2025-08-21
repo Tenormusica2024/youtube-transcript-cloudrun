@@ -32,7 +32,7 @@
             color: #333;
         }
         
-        /* Navbar with water reflection effect - YouTube Red version */
+        /* Navbar - YouTube Red clean design */
         .navbar {
             background: var(--youtube-gradient);
             padding: 0.8rem;
@@ -41,9 +41,7 @@
             overflow: hidden;
         }
         
-        /* Static CSS effects disabled - using dynamic JavaScript orbs only */
-        
-        /* CSS keyframes removed - using dynamic JavaScript animations only */
+        /* All light effects removed for clean design */
         
         .navbar-brand {
             color: white !important;
@@ -447,7 +445,7 @@
                 YouTube字幕抽出ツール
             </span>
             <span class="version-info">
-                v1.5.0-enhanced-effects
+                v1.5.1-clean-from-working-base
             </span>
             <button type="button" class="btn btn-cache-clear" onclick="forceClearCache()" 
                     title="ページを強制更新してキャッシュをクリア">
@@ -1077,94 +1075,7 @@
             }
         }
 
-        // Dynamic water reflection light orbs
-        function createWaterReflectionOrbs() {
-            const navbar = document.querySelector('.navbar');
-            if (!navbar) return;
-
-            // Create container for dynamic orbs
-            const orbContainer = document.createElement('div');
-            orbContainer.className = 'water-orb-container';
-            orbContainer.style.cssText = `
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                pointer-events: none;
-                z-index: 0;
-                overflow: hidden;
-            `;
-            navbar.appendChild(orbContainer);
-
-            // Create multiple floating orbs - Large & Slow
-            for (let i = 0; i < 6; i++) {
-                const orb = document.createElement('div');
-                orb.className = 'water-orb';
-                
-                const size = (20 + Math.random() * 60) * 10; // 200-800px (10x larger)
-                const startX = Math.random() * 120 - 20; // -20% to 100%
-                const startY = Math.random() * 120 - 10; // -10% to 110%
-                const delay = Math.random() * 40; // 0-40s delay (5x longer)
-                const duration = (12 + Math.random() * 16) * 5; // 60-140s duration (5x slower)
-                
-                orb.style.cssText = `
-                    position: absolute;
-                    width: ${size}px;
-                    height: ${size}px;
-                    background: radial-gradient(circle, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 30%, rgba(255, 200, 200, 0.5) 60%, transparent 80%);
-                    border-radius: 50%;
-                    left: ${startX}%;
-                    top: ${startY}%;
-                    animation: floatingOrb${i} ${duration}s ease-in-out infinite ${delay}s;
-                    filter: blur(1px);
-                    mix-blend-mode: screen;
-                    box-shadow: 0 0 30px rgba(255, 255, 255, 0.4), inset 0 0 20px rgba(255, 255, 255, 0.3);
-                `;
-                
-                // Generate unique keyframes for each orb - Large movements
-                const keyframeName = `floatingOrb${i}`;
-                const moveX1 = -100 + Math.random() * 200; // -100px to 100px
-                const moveY1 = -75 + Math.random() * 150;  // -75px to 75px
-                const moveX2 = -150 + Math.random() * 300; // -150px to 150px
-                const moveY2 = -100 + Math.random() * 200; // -100px to 100px
-                const moveX3 = -75 + Math.random() * 150;  // -75px to 75px
-                const moveY3 = -50 + Math.random() * 100;  // -50px to 50px
-                
-                const keyframes = `
-                    @keyframes ${keyframeName} {
-                        0%, 100% {
-                            transform: translate(0, 0) scale(1);
-                            opacity: 0.6;
-                        }
-                        25% {
-                            transform: translate(${moveX1}px, ${moveY1}px) scale(${0.7 + Math.random() * 0.3});
-                            opacity: 0.9;
-                        }
-                        50% {
-                            transform: translate(${moveX2}px, ${moveY2}px) scale(${0.8 + Math.random() * 0.4});
-                            opacity: 0.7;
-                        }
-                        75% {
-                            transform: translate(${moveX3}px, ${moveY3}px) scale(${0.75 + Math.random() * 0.25});
-                            opacity: 0.8;
-                        }
-                    }
-                `;
-                
-                // Add keyframes to stylesheet
-                const style = document.createElement('style');
-                style.textContent = keyframes;
-                document.head.appendChild(style);
-                
-                orbContainer.appendChild(orb);
-            }
-        }
-
-        // Initialize water reflection orbs when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            createWaterReflectionOrbs();
-        });
+        // Light effects removed - clean design
     </script>
 </body>
 </html>
