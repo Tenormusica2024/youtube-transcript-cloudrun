@@ -12,12 +12,16 @@ __pycache__
 dist/
 build/
 
-# 仮想環境
+# 仮想環境 (CRITICAL: Include all venv paths)
 .env
 .venv
 venv/
 env/
 ENV/
+../../api/
+../../api/venv/
+**/api/venv/**
+**/venv/**
 
 # IDE設定
 .vscode/
