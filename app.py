@@ -15,7 +15,7 @@ from sqlalchemy.dialects.postgresql import JSON
 app = Flask(__name__)
 
 # Application version
-APP_VERSION = "v2.0.2"
+APP_VERSION = "v2.0.3"
 
 # Database configuration
 # Default to local SQLite for development, PostgreSQL for production
@@ -375,46 +375,99 @@ def download_from_youtube():
         if not yt_command:
             return jsonify({'error': 'YouTube downloader (yt-dlp or youtube-dl) not found. Please install yt-dlp.'}), 500
         
-        try:
-            # Download audio with found command and bot detection countermeasures
-            subprocess.run([
-                yt_command,
-                '--extract-audio',
-                '--audio-format', 'mp3',
-                '--audio-quality', '0',
-                '--output', temp_audio_file.replace('.mp3', '.%(ext)s'),
-                '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                '--referer', 'https://www.youtube.com/',
-                '--no-check-certificate',
-                '--prefer-free-formats',
-                '--no-warnings',
-                '--quiet',
-                '--no-playlist',
-                youtube_url
-            ], check=True, capture_output=True, text=True)
-        except subprocess.CalledProcessError as e:
-            error_msg = e.stderr if e.stderr else str(e)
-            # Try alternative approach if first attempt fails
-            try:
-                print(f"First attempt failed, trying alternative method: {error_msg}")
-                # Use more conservative settings
-                subprocess.run([
+        # Multiple strategies for YouTube download
+        download_strategies = [
+            {
+                'name': 'Standard with embedded player bypass',
+                'args': [
                     yt_command,
                     '--extract-audio',
                     '--audio-format', 'mp3',
                     '--audio-quality', '0',
                     '--output', temp_audio_file.replace('.mp3', '.%(ext)s'),
-                    '--user-agent', 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-                    '--sleep-interval', '2',
-                    '--max-sleep-interval', '5',
+                    '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    '--referer', 'https://www.youtube.com/',
+                    '--extractor-args', 'youtube:player_client=web',
                     '--no-check-certificate',
-                    '--ignore-errors',
+                    '--prefer-free-formats',
+                    '--no-warnings',
+                    '--quiet',
                     '--no-playlist',
                     youtube_url
-                ], check=True, capture_output=True, text=True)
-            except subprocess.CalledProcessError as e2:
-                error_msg2 = e2.stderr if e2.stderr else str(e2)
-                return jsonify({'error': f'YouTube download failed after retry. Primary error: {error_msg}. Retry error: {error_msg2}. This might be due to YouTube bot detection. Please try a different video or try again later.'}), 500
+                ]
+            },
+            {
+                'name': 'Mobile client bypass',
+                'args': [
+                    yt_command,
+                    '--extract-audio',
+                    '--audio-format', 'mp3',
+                    '--audio-quality', '0',
+                    '--output', temp_audio_file.replace('.mp3', '.%(ext)s'),
+                    '--user-agent', 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1',
+                    '--extractor-args', 'youtube:player_client=ios',
+                    '--no-check-certificate',
+                    '--prefer-free-formats',
+                    '--no-warnings',
+                    '--quiet',
+                    '--no-playlist',
+                    youtube_url
+                ]
+            },
+            {
+                'name': 'Android client bypass',
+                'args': [
+                    yt_command,
+                    '--extract-audio',
+                    '--audio-format', 'mp3',
+                    '--audio-quality', '0',
+                    '--output', temp_audio_file.replace('.mp3', '.%(ext)s'),
+                    '--extractor-args', 'youtube:player_client=android',
+                    '--no-check-certificate',
+                    '--prefer-free-formats',
+                    '--no-warnings',
+                    '--quiet',
+                    '--no-playlist',
+                    youtube_url
+                ]
+            },
+            {
+                'name': 'Embedded player extraction',
+                'args': [
+                    yt_command,
+                    '--extract-audio',
+                    '--audio-format', 'mp3',
+                    '--audio-quality', '0',
+                    '--output', temp_audio_file.replace('.mp3', '.%(ext)s'),
+                    '--extractor-args', 'youtube:player_client=web_embedded',
+                    '--no-check-certificate',
+                    '--prefer-free-formats',
+                    '--no-warnings',
+                    '--quiet',
+                    '--no-playlist',
+                    youtube_url
+                ]
+            }
+        ]
+        
+        last_error = None
+        for i, strategy in enumerate(download_strategies, 1):
+            try:
+                print(f"Trying strategy {i}: {strategy['name']}")
+                subprocess.run(strategy['args'], check=True, capture_output=True, text=True)
+                print(f"Success with strategy {i}: {strategy['name']}")
+                break  # Success, exit the loop
+            except subprocess.CalledProcessError as e:
+                error_msg = e.stderr if e.stderr else str(e)
+                last_error = error_msg
+                print(f"Strategy {i} failed: {error_msg}")
+                if i < len(download_strategies):
+                    continue  # Try next strategy
+                else:
+                    # All strategies failed
+                    return jsonify({
+                        'error': f'YouTube download failed after trying {len(download_strategies)} different methods. This video might be restricted, age-gated, or require authentication. Last error: {last_error}. Please try a different video or use the direct upload feature instead.'
+                    }), 500
         
         # Check if file was created
         if not os.path.exists(temp_audio_file):
