@@ -54,9 +54,27 @@
 
       .brand {
         display: grid;
-        grid-template-columns: auto 1fr;
+        grid-template-columns: auto 1fr auto;
         gap: 16px;
         align-items: center;
+      }
+
+      .version {
+        font-size: 0.75rem;
+        color: var(--muted);
+        opacity: 0.7;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        background: var(--panel);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        padding: 4px 8px;
+        transition: opacity 0.2s ease;
+      }
+
+      .version:hover {
+        opacity: 1;
+        color: var(--accent);
       }
       .cover {
         width: 76px;
@@ -525,6 +543,7 @@
             <h1>Podcast Home Page</h1>
             <p class="subtitle">Explore episodes, search the archive, and subscribe. Built to be audio‑centric and easy to navigate.</p>
           </div>
+          <div class="version" id="app-version">v2.0.1</div>
         </div>
 
         <div class="controls-bar" aria-label="Search and subscribe">
@@ -1048,6 +1067,21 @@
       });
 
       // Load episodes from server
+      async function loadVersion() {
+        try {
+          const response = await fetch('/api/version');
+          if (response.ok) {
+            const data = await response.json();
+            const versionElement = document.getElementById('app-version');
+            if (versionElement && data.version) {
+              versionElement.textContent = data.version;
+            }
+          }
+        } catch (error) {
+          console.warn('Error loading version:', error);
+        }
+      }
+
       async function loadEpisodes() {
         try {
           const response = await fetch('/api/episodes');
@@ -1211,6 +1245,7 @@
       });
       
       // Initialize
+      loadVersion();
       loadEpisodes();
       // Set persisted speed UI state
       const persistedRate = (() => { try { return parseFloat(localStorage.getItem('ph_rate')); } catch { return NaN; } })();

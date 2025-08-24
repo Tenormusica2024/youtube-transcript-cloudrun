@@ -14,6 +14,9 @@ from sqlalchemy.dialects.postgresql import JSON
 
 app = Flask(__name__)
 
+# Application version
+APP_VERSION = "v2.0.1"
+
 # Database configuration
 # Default to local SQLite for development, PostgreSQL for production
 DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///episodes.db')
@@ -204,7 +207,11 @@ def delete_episode_db(episode_id):
 
 @app.route('/health')
 def health_check():
-    return jsonify({"status": "healthy", "app": "podcast-homepage"})
+    return jsonify({"status": "healthy", "app": "podcast-homepage", "version": APP_VERSION})
+
+@app.route('/api/version')
+def get_version():
+    return jsonify({"version": APP_VERSION, "app": "Podcast Homepage"})
 
 @app.route('/api/episodes')
 def get_episodes():
