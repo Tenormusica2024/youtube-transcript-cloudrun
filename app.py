@@ -335,26 +335,45 @@ def download_from_youtube():
         temp_audio_file = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
         
         # Use yt-dlp to download audio (fallback to youtube-dl if not available)
+        import shutil
+        
+        # Find yt-dlp or youtube-dl command
+        yt_command = None
+        if shutil.which('yt-dlp'):
+            yt_command = 'yt-dlp'
+        elif shutil.which('youtube-dl'):
+            yt_command = 'youtube-dl'
+        else:
+            # Try common Windows paths
+            import platform
+            if platform.system() == 'Windows':
+                common_paths = [
+                    r'C:\Users\Tenormusica\AppData\Local\Programs\Python\Python310\Scripts\yt-dlp.exe',
+                    r'C:\Python310\Scripts\yt-dlp.exe',
+                    r'C:\Python39\Scripts\yt-dlp.exe',
+                    r'C:\Python38\Scripts\yt-dlp.exe',
+                ]
+                for path in common_paths:
+                    if os.path.exists(path):
+                        yt_command = path
+                        break
+        
+        if not yt_command:
+            return jsonify({'error': 'YouTube downloader (yt-dlp or youtube-dl) not found. Please install yt-dlp.'}), 500
+        
         try:
-            # Try yt-dlp first (more reliable and updated)
+            # Download audio with found command
             subprocess.run([
-                'yt-dlp',
+                yt_command,
                 '--extract-audio',
                 '--audio-format', 'mp3',
                 '--audio-quality', '0',
                 '--output', temp_audio_file.replace('.mp3', '.%(ext)s'),
                 youtube_url
             ], check=True, capture_output=True, text=True)
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            # Fallback to youtube-dl
-            subprocess.run([
-                'youtube-dl',
-                '--extract-audio',
-                '--audio-format', 'mp3',
-                '--audio-quality', '0',
-                '--output', temp_audio_file.replace('.mp3', '.%(ext)s'),
-                youtube_url
-            ], check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError as e:
+            error_msg = e.stderr if e.stderr else str(e)
+            return jsonify({'error': f'YouTube download failed: {error_msg}'}), 500
         
         # Check if file was created
         if not os.path.exists(temp_audio_file):
@@ -379,17 +398,11 @@ def download_from_youtube():
         if not title:
             try:
                 result = subprocess.run([
-                    'yt-dlp', '--get-title', youtube_url
+                    yt_command, '--get-title', youtube_url
                 ], capture_output=True, text=True, check=True)
                 title = result.stdout.strip()
             except:
-                try:
-                    result = subprocess.run([
-                        'youtube-dl', '--get-title', youtube_url
-                    ], capture_output=True, text=True, check=True)
-                    title = result.stdout.strip()
-                except:
-                    title = f"YouTube Episode - {unique_id[:8]}"
+                title = f"YouTube Episode - {unique_id[:8]}"
         
         # Create episode in database
         new_episode = create_episode_db(
