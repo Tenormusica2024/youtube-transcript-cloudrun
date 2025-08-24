@@ -15,7 +15,7 @@ from sqlalchemy.dialects.postgresql import JSON
 app = Flask(__name__)
 
 # Application version
-APP_VERSION = "v2.0.1"
+APP_VERSION = "v2.0.2"
 
 # Database configuration
 # Default to local SQLite for development, PostgreSQL for production
@@ -326,14 +326,21 @@ def download_from_youtube():
     if not youtube_url:
         return jsonify({'error': 'YouTube URL is required'}), 400
     
-    # Validate YouTube URL
+    # Validate and normalize YouTube URL
     youtube_regex = re.compile(
         r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/'
         r'(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})'
     )
     
-    if not youtube_regex.match(youtube_url):
+    match = youtube_regex.match(youtube_url)
+    if not match:
         return jsonify({'error': 'Invalid YouTube URL'}), 400
+    
+    # Extract video ID and create clean URL
+    video_id = match.group(6)
+    if video_id:
+        # Use clean YouTube URL to avoid playlist issues
+        youtube_url = f"https://www.youtube.com/watch?v={video_id}"
     
     try:
         # Generate unique filename
@@ -369,18 +376,45 @@ def download_from_youtube():
             return jsonify({'error': 'YouTube downloader (yt-dlp or youtube-dl) not found. Please install yt-dlp.'}), 500
         
         try:
-            # Download audio with found command
+            # Download audio with found command and bot detection countermeasures
             subprocess.run([
                 yt_command,
                 '--extract-audio',
                 '--audio-format', 'mp3',
                 '--audio-quality', '0',
                 '--output', temp_audio_file.replace('.mp3', '.%(ext)s'),
+                '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                '--referer', 'https://www.youtube.com/',
+                '--no-check-certificate',
+                '--prefer-free-formats',
+                '--no-warnings',
+                '--quiet',
+                '--no-playlist',
                 youtube_url
             ], check=True, capture_output=True, text=True)
         except subprocess.CalledProcessError as e:
             error_msg = e.stderr if e.stderr else str(e)
-            return jsonify({'error': f'YouTube download failed: {error_msg}'}), 500
+            # Try alternative approach if first attempt fails
+            try:
+                print(f"First attempt failed, trying alternative method: {error_msg}")
+                # Use more conservative settings
+                subprocess.run([
+                    yt_command,
+                    '--extract-audio',
+                    '--audio-format', 'mp3',
+                    '--audio-quality', '0',
+                    '--output', temp_audio_file.replace('.mp3', '.%(ext)s'),
+                    '--user-agent', 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+                    '--sleep-interval', '2',
+                    '--max-sleep-interval', '5',
+                    '--no-check-certificate',
+                    '--ignore-errors',
+                    '--no-playlist',
+                    youtube_url
+                ], check=True, capture_output=True, text=True)
+            except subprocess.CalledProcessError as e2:
+                error_msg2 = e2.stderr if e2.stderr else str(e2)
+                return jsonify({'error': f'YouTube download failed after retry. Primary error: {error_msg}. Retry error: {error_msg2}. This might be due to YouTube bot detection. Please try a different video or try again later.'}), 500
         
         # Check if file was created
         if not os.path.exists(temp_audio_file):
@@ -405,10 +439,16 @@ def download_from_youtube():
         if not title:
             try:
                 result = subprocess.run([
-                    yt_command, '--get-title', youtube_url
+                    yt_command, 
+                    '--get-title', 
+                    '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    '--no-check-certificate',
+                    '--quiet',
+                    youtube_url
                 ], capture_output=True, text=True, check=True)
                 title = result.stdout.strip()
-            except:
+            except Exception as e:
+                print(f"Failed to get video title: {e}")
                 title = f"YouTube Episode - {unique_id[:8]}"
         
         # Create episode in database
