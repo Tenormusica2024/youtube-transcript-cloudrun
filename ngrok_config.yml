@@ -1,0 +1,8 @@
+version: "2"
+authtoken: 2nGgr5ksN9UNX9dTqPCjYIZtB6g_4hYLWyYhKDNqoN1qrRMgH
+tunnels:
+  yt-transcript:
+    proto: http
+    addr: 8085
+    hostname: yt-transcript.ngrok.io
+    bind_tls: true

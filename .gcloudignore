@@ -41,11 +41,6 @@ test_*.py
 docs/
 README.md
 
-# Docker関連（Cloud Buildを使用しない場合）
-Dockerfile
-docker-compose.yml
-.dockerignore
-
 # 開発用ファイル
 *.bak
 *.tmp
@@ -56,3 +51,16 @@ secrets/
 *.key
 *.pem
 *.cert
+
+# ngrok関連
+ngrok*
+*ngrok*
+
+# アーカイブ
+archive/
+
+# 一時ファイル
+temp_files/
+
+# メモリバンク
+memory-bank/
