@@ -81,7 +81,7 @@ CORS(app, origins=cors_origins, allow_headers=["Content-Type", "Authorization"])
 load_dotenv()
 
 # Cloud Run用ポート設定（環境変数PORTを優先）
-PORT = int(os.environ.get("PORT", 8085))
+PORT = int(os.environ.get("PORT", 8080))
 
 
 # APIキー取得（環境変数を優先）
@@ -696,10 +696,7 @@ def summarize_with_gemini(text):
 @app.route("/")
 def index():
     """メインページ"""
-    # 動的バージョン生成（キャッシュ回避用）
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    version = f"v2.0-{timestamp}"
-    return render_template("index.html", version=version)
+    return render_template("index.html")
 
 
 @app.route("/health")
