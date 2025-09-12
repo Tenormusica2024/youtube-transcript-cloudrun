@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>YouTube字幕抽出ツール - スマホ版</title>
+    <title>YouTube字幕抽出ツール - v1.5.1</title>
     
     <!-- Bootstrap 5.3.0 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -503,7 +503,7 @@
                 <!-- Version display at bottom -->
                 <div class="text-center mt-4">
                     <small class="text-muted" style="font-size: 0.75rem;">
-                        <i class="bi bi-info-circle"></i> <span id="versionDisplay">v1.3.11-gradient-red</span>
+                        <i class="bi bi-info-circle"></i> <span id="versionDisplay">v1.5.1-clean</span>
                     </small>
                 </div>
                 
@@ -713,14 +713,14 @@
                     console.log('[ERROR] Server returned error:', data.error);
                     showError(data.error || '字幕の抽出に失敗しました');
                 } else {
-                    console.log('[WARN] No successful connection, showing demo');
-                    // サーバーが利用できない場合のデモ表示
-                    showDemoResults(url, lang);
+                    console.log('[ERROR] No successful connection');
+                    // サーバー接続エラー表示
+                    showServerError();
                 }
             } catch (error) {
                 console.error('[CRITICAL] All servers failed:', error);
                 console.error('[CRITICAL] Error stack:', error.stack);
-                showDemoResults(url, lang);
+                showServerError();
             } finally {
                 btnText.textContent = '字幕を抽出';
                 btnSpinner.style.display = 'none';
@@ -728,45 +728,17 @@
             }
         });
         
-        function showDemoResults(url, lang) {
-            console.log('Showing demo results for:', url);
+        function showServerError() {
+            console.log('Server connection failed, showing error message');
             
-            // デモ用データ
-            const demoData = {
-                success: true,
-                title: 'YouTube動画 (デモ)',
-                transcript: 'こんにちは、皆さん。\n\n今日は素晴らしい一日ですね。\n\nYouTube字幕抽出ツールのデモンストレーションをご覧いただき、ありがとうございます。\n\nこのツールは以下の機能を提供します：\n・YouTube動画の字幕を自動抽出\n・AIによる要約生成\n・テキストの整形と誤変換修正\n・多言語対応\n\n実際のサーバーが利用可能になると、より高度な機能をお使いいただけます。',
-                original_transcript: 'こんにちは、皆さん。今日は素晴らしい一日ですね。YouTube字幕抽出ツールのデモンストレーションをご覧いただき、ありがとうございます。このツールは以下の機能を提供します：YouTube動画の字幕を自動抽出、AIによる要約生成、テキストの整形と誤変換修正、多言語対応。実際のサーバーが利用可能になると、より高度な機能をお使いいただけます。',
-                summary: '🤖 AI要約 (デモモード):\n\nYouTube字幕抽出ツールのデモンストレーション動画です。主要な機能として字幕自動抽出、AI要約生成、テキスト整形、多言語対応が紹介されています。\n\n---\n📊 分析情報:\n・ 動画URL: ' + url + '\n・ 元テキスト文字数: 123文字\n・ 処理時刻: ' + new Date().toTimeString().split(' ')[0] + '\n・ 言語設定: ' + lang.toUpperCase() + '\n・ 状態: デモモード（サーバー接続待機中）',
-                stats: {
-                    segments: 15,
-                    characters: 123,
-                    language: lang.toUpperCase(),
-                    transcript_type: 'Demo'
-                },
-                version: 'v1.3.11-gradient-red-demo-' + new Date().getHours().toString().padStart(2, '0') + new Date().getMinutes().toString().padStart(2, '0'),
-                server_time: new Date().toLocaleString(),
-                cache_cleared: 'demo'
+            const errorMessage = {
+                success: false,
+                title: 'サーバーエラー',
+                error: 'サーバーに接続できませんでした。しばらく時間をおいてから再度お試しください。'
             };
             
-            displayResults(demoData);
-            
-            // サーバー接続情報を表示
-            setTimeout(() => {
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-info alert-custom';
-                alertDiv.innerHTML = `
-                    <i class="bi bi-info-circle"></i> 
-                    <strong>デモモード:</strong> サーバーに接続できませんでした。
-                    <br>実際のサーバーは以下のURLで確認できます：
-                    <br>• <a href="http://127.0.0.1:8085" target="_blank">http://127.0.0.1:8085</a>
-                    <br>• <a href="http://127.0.0.1:8089" target="_blank">http://127.0.0.1:8089</a>
-                    <br>• <a href="http://127.0.0.1:8088" target="_blank">http://127.0.0.1:8088</a>
-                `;
-                document.querySelector('.card-body-custom').prepend(alertDiv);
-                
-                setTimeout(() => alertDiv.remove(), 10000);
-            }, 1000);
+            hideLoading();
+            showResults(errorMessage, null);
         }
         
         function displayResults(data) {
@@ -774,7 +746,7 @@
             document.getElementById('videoTitle').textContent = data.title || 'YouTube動画';
             
             // バージョン情報とキャッシュ情報を表示
-            const versionInfo = `${data.version || 'v1.3.11'} | ${data.server_time || ''} | キャッシュ: ${data.cache_cleared || 'none'}`;
+            const versionInfo = `${data.version || 'v1.5.1-clean'} | ${data.server_time || ''} | キャッシュ: ${data.cache_cleared || 'none'}`;
             if (document.getElementById('versionInfo')) {
                 document.getElementById('versionInfo').textContent = versionInfo;
             }
@@ -874,7 +846,7 @@
             const seconds = now.getSeconds().toString().padStart(2, '0');
             const versionElement = document.getElementById('versionDisplay');
             if (versionElement) {
-                versionElement.textContent = `v1.3.11-gradient-red-${timestamp}:${seconds}`;
+                versionElement.textContent = `v1.5.1-clean-${timestamp}:${seconds}`;
             }
         }
         
