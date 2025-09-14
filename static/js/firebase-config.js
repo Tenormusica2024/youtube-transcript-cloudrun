@@ -321,29 +321,20 @@ export const apiClient = {
             
             console.log(' API Request:', { url: finalUrl, method: options.method || 'GET' });
             
-            // 🔥 FIX: 認証状態チェックを柔軟にする - 削除機能等で非認証でも利用可能
-            let token = null;
-            if (currentUser) {
-                try {
-                    token = await firebaseAuth.getIdToken();
-                    console.log(' Token obtained:', token ? 'Yes' : 'No');
-                } catch (error) {
-                    console.warn('⚠️ Failed to get auth token:', error);
-                    token = null;
-                }
-            } else {
-                console.log('⚠️ No authenticated user - proceeding without token for non-auth endpoints');
+            // 🔥 FIX: 認証状態チェックを先に行う
+            if (!currentUser) {
+                console.log('⚠️ No authenticated user - skipping token request');
+                throw new Error('User not authenticated - please log in');
             }
+            
+            const token = await firebaseAuth.getIdToken();
+            console.log(' Token obtained:', token ? 'Yes' : 'No');
             
             const headers = {
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
                 ...options.headers
             };
-            
-            // 🔥 FIX: tokenがある場合のみAuthorizationヘッダーを追加
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
             
             // paramsはfetchオプションから除外
             const fetchOptions = { ...options };

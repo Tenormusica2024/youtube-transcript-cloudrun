@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <!-- CACHE BUSTER: v2025091401 -->
+    <!-- CACHE BUSTER: v2025090601 -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- ULTIMATE CACHE BUSTER v3.1.1 -->
@@ -1386,6 +1386,11 @@
         let currentMedia = null; // Can be audio or video element
         let currentMediaType = 'audio'; // 'audio' or 'video'
         let currentlyPlayingId = null; // Track the currently playing episode ID
+        
+        // 🔥 FIX: Make currentMedia globally accessible to avoid null reference errors
+        window.currentMedia = currentMedia;
+        window.currentMediaType = currentMediaType;
+        window.currentlyPlayingId = currentlyPlayingId;
         let episodes = [];
         let isUploading = false;
         let selectedFile = null; //
@@ -3220,12 +3225,12 @@
             const isVideo = file.type.startsWith('video/');
             
             if (!isAudio && !isVideo) {
-                showMessage('音声ファイルまたは動画ファイルを選択してください', 'error', 'upload');
+                showMessage('', 'error', 'upload');
                 return;
             }
 
             if (file.size > 500 * 1024 * 1024) { // 500MB
-                showMessage('ファイルサイズは500MB以下にしてください', 'error', 'upload');
+                showMessage('500MB', 'error', 'upload');
                 return;
             }
 
@@ -3260,7 +3265,7 @@
             const fileInput = document.getElementById('fileInput');
             if (!fileInput) {
                 console.error(' File input element not found');
-                showMessage('ファイル入力エラーが発生しました', 'error', 'upload');
+                showMessage('', 'error', 'upload');
                 return;
             }
 
@@ -3290,12 +3295,12 @@
             
             if (!file) {
                 console.error(' No files selected');
-                showMessage('ファイルを選択してください', 'error', 'upload');
+                showMessage('', 'error', 'upload');
                 return;
             }
             
             if (!title) {
-                showMessage('タイトルを入力してください', 'error', 'upload');
+                showMessage('', 'error', 'upload');
                 return;
             }
 
@@ -3372,8 +3377,8 @@
                     artwork: artwork
                 });
 
-                showProgress('完了', 100);
-                showMessage(`「${title}」のアップロードが完了しました`, 'success', 'upload');
+                showProgress('', 100);
+                showMessage('', 'success', 'upload');
                 
                 // console.log(' Upload completed, reloading episodes...');
                 // console.log(' Current user at upload completion:', currentUser?.email);
@@ -4147,13 +4152,14 @@
         }
 
         // Audio Player Functions
-        async function playEpisode(episodeId, providedEpisode = null) {
+        async function playEpisode(episodeId, titleOrEpisode = null, podcastName = null) {
             // Check if this track is currently playing - implement toggle functionality
             if (currentlyPlayingId === episodeId && currentMedia && !currentMedia.paused) {
                 // Stop playback and reset button
                 currentMedia.pause();
                 currentMedia.currentTime = 0;
                 currentlyPlayingId = null;
+                window.currentlyPlayingId = null; // 🔥 FIX: Update global reference
                 
                 // Reset button text to "再生"
                 const playButtons = document.querySelectorAll(`[onclick*="${episodeId}"]`);
@@ -4177,10 +4183,31 @@
             
             // console.log(' Starting immediate playback for:', episodeId);
             
-            // Use provided episode or find in episodes array
-            const episode = providedEpisode || episodes.find(ep => ep.trackId === episodeId);
+            // Handle different parameter formats
+            let episode;
+            
+            // If titleOrEpisode is a string (title), create a podcast episode object
+            if (typeof titleOrEpisode === 'string' && podcastName) {
+                episode = {
+                    trackId: episodeId,
+                    title: titleOrEpisode,
+                    artist: podcastName,
+                    uploaderName: podcastName,
+                    isPodcast: true,  // Mark as podcast episode
+                    type: 'podcast'
+                };
+            }
+            // If titleOrEpisode is an object, use it as the episode
+            else if (typeof titleOrEpisode === 'object' && titleOrEpisode !== null) {
+                episode = titleOrEpisode;
+            }
+            // Otherwise, try to find in episodes array
+            else {
+                episode = episodes.find(ep => ep.trackId === episodeId);
+            }
+            
             if (!episode) {
-                showMessage('', 'error');
+                showMessage('エピソードが見つかりません', 'error');
                 return;
             }
 
@@ -4214,9 +4241,11 @@
                         // Wait for cleanup to complete
                         await new Promise(resolve => setTimeout(resolve, 150));
                         currentMedia = null;
+                        window.currentMedia = null; // 🔥 FIX: Update global reference
                     } catch (stopError) {
                         console.warn('Error stopping previous media:', stopError);
                         currentMedia = null;
+                        window.currentMedia = null; // 🔥 FIX: Update global reference
                     }
                 }
 
@@ -4232,14 +4261,29 @@
                     
                     // If no direct audioUrl, try to get it from podcast-specific API
                     if (!audioUrl) {
-                        console.log('🎙️ No direct audioUrl found, trying to get from library...');
+                        console.log('🎙️ No direct audioUrl found, searching for episode details...');
                         try {
-                            // Try to get from regular library first
-                            const playData = await apiClient.getPlayUrl(episodeId);
-                            audioUrl = playData.playUrl;
-                            console.log('🎙️ Got audioUrl from library:', audioUrl);
+                            // Use podcast search API to get episode details
+                            const searchResponse = await fetch(`/api/podcasts/search?episode_id=${episodeId}`, {
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                }
+                            });
+                            
+                            if (searchResponse.ok) {
+                                const searchData = await searchResponse.json();
+                                if (searchData.episodes && searchData.episodes.length > 0) {
+                                    const foundEpisode = searchData.episodes.find(ep => ep.id === episodeId) || searchData.episodes[0];
+                                    audioUrl = foundEpisode.audio_url;
+                                    console.log('🎙️ Got audioUrl from podcast search:', audioUrl);
+                                }
+                            }
+                            
+                            if (!audioUrl) {
+                                throw new Error('Audio URL not found in search results');
+                            }
                         } catch (error) {
-                            console.error('🎙️ Failed to get audioUrl from library:', error);
+                            console.error('🎙️ Failed to get audioUrl from podcast search:', error);
                             throw new Error('このポッドキャストエピソードの音声ファイルが見つかりません');
                         }
                     }
@@ -4266,10 +4310,12 @@
                 
                 if (isVideo) {
                     currentMedia = videoElement;
+                    window.currentMedia = currentMedia; // 🔥 FIX: Update global reference
                     videoContainer.style.display = 'block';
                     audioElement.style.display = 'none';
                 } else {
                     currentMedia = audioElement;
+                    window.currentMedia = currentMedia; // 🔥 FIX: Update global reference
                     videoContainer.style.display = 'none';
                     audioElement.style.display = 'none';
                 }
@@ -4342,6 +4388,7 @@
                     
                     // Set currently playing ID
                     currentlyPlayingId = episodeId;
+                    window.currentlyPlayingId = currentlyPlayingId; // 🔥 FIX: Update global reference
                     
                     document.getElementById('playPauseBtn').textContent = 'PAUSE';
                     showMessage(` "${episode.title}" `, 'success');
@@ -4481,6 +4528,7 @@
             if (currentMedia) {
                 currentMedia.src = '';
                 currentMedia = null;
+                window.currentMedia = null; // 🔥 FIX: Update global reference
             }
             mediaPlayer.style.display = 'none';
         }
@@ -4498,9 +4546,24 @@
         }
 
         function closePlayer() {
+            // Reset play button for currently playing track
+            if (currentlyPlayingId) {
+                const playButtons = document.querySelectorAll(`[onclick*="${currentlyPlayingId}"]`);
+                playButtons.forEach(btn => {
+                    if (btn.classList.contains('play-button')) {
+                        btn.textContent = '再生';
+                        btn.style.opacity = '1';
+                        btn.style.background = '';
+                    }
+                });
+                currentlyPlayingId = null;
+                window.currentlyPlayingId = null; // 🔥 FIX: Update global reference
+            }
+            
             if (currentMedia) {
                 currentMedia.pause();
                 currentMedia = null;
+                window.currentMedia = null; // 🔥 FIX: Update global reference
             }
             mediaPlayer.style.display = 'none';
             document.getElementById('playPauseBtn').textContent = 'PLAY';
@@ -4779,6 +4842,216 @@
             return window.showMessage(message, type, context);
         }
 
+        // Custom confirmation dialog to replace browser confirm() - Styled to match existing modals
+        function showCustomConfirmDialog(message) {
+            return new Promise((resolve) => {
+                // Create modal overlay using existing system styles
+                const overlay = document.createElement('div');
+                overlay.className = 'modal';
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.85);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                    backdrop-filter: blur(8px);
+                `;
+
+                // Create modal content using existing class structure
+                const modalContent = document.createElement('div');
+                modalContent.className = 'modal-content confirmation-modal';
+                modalContent.style.cssText = `
+                    background: var(--panel-2);
+                    border-radius: var(--radius);
+                    border: 1px solid rgba(159, 247, 234, 0.2);
+                    box-shadow: var(--shadow);
+                    max-width: 480px;
+                    width: 90%;
+                    overflow: hidden;
+                    animation: modalSlideIn 0.2s ease-out;
+                `;
+
+                // Create modal header
+                const modalHeader = document.createElement('div');
+                modalHeader.className = 'modal-header';
+                modalHeader.style.cssText = `
+                    padding: 24px 32px 0;
+                    border-bottom: none;
+                `;
+
+                const title = document.createElement('h2');
+                title.textContent = '削除の確認';
+                title.style.cssText = `
+                    color: var(--text);
+                    font-size: 20px;
+                    font-weight: 600;
+                    margin: 0;
+                    margin-bottom: 16px;
+                `;
+
+                // Create modal body
+                const modalBody = document.createElement('div');
+                modalBody.className = 'modal-body';
+                modalBody.style.cssText = `
+                    padding: 0 32px 24px;
+                `;
+
+                const messageEl = document.createElement('p');
+                messageEl.textContent = message;
+                messageEl.className = 'confirm-message';
+                messageEl.style.cssText = `
+                    color: var(--muted);
+                    font-size: 15px;
+                    line-height: 1.6;
+                    margin: 0 0 24px 0;
+                `;
+
+                // Create modal footer
+                const modalFooter = document.createElement('div');
+                modalFooter.className = 'modal-footer';
+                modalFooter.style.cssText = `
+                    display: flex;
+                    gap: 12px;
+                    padding: 0 32px 32px;
+                    justify-content: flex-end;
+                `;
+
+                // Create Cancel button using existing auth-button styles
+                const cancelButton = document.createElement('button');
+                cancelButton.textContent = 'キャンセル';
+                cancelButton.className = 'auth-button secondary';
+                cancelButton.style.cssText = `
+                    background: var(--panel);
+                    color: var(--text);
+                    border: 1px solid rgba(159, 247, 234, 0.2);
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    min-width: 90px;
+                `;
+
+                // Create OK/Delete button using existing danger auth-button styles  
+                const okButton = document.createElement('button');
+                okButton.textContent = '削除';
+                okButton.className = 'auth-button danger';
+                okButton.style.cssText = `
+                    background: var(--danger);
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    min-width: 90px;
+                `;
+
+                // Add hover effects matching existing system
+                cancelButton.onmouseover = () => {
+                    cancelButton.style.background = 'var(--panel-2)';
+                    cancelButton.style.borderColor = 'var(--accent)';
+                    cancelButton.style.transform = 'translateY(-1px)';
+                };
+                cancelButton.onmouseout = () => {
+                    cancelButton.style.background = 'var(--panel)';
+                    cancelButton.style.borderColor = 'rgba(159, 247, 234, 0.2)';
+                    cancelButton.style.transform = 'translateY(0)';
+                };
+
+                okButton.onmouseover = () => {
+                    okButton.style.background = '#ff5252';
+                    okButton.style.transform = 'translateY(-1px)';
+                };
+                okButton.onmouseout = () => {
+                    okButton.style.background = 'var(--danger)';
+                    okButton.style.transform = 'translateY(0)';
+                };
+
+                // Event handlers
+                const cleanup = () => {
+                    if (document.body.contains(overlay)) {
+                        document.body.removeChild(overlay);
+                    }
+                };
+
+                okButton.onclick = () => {
+                    console.log('🔔 DEBUG: Custom dialog - User clicked 削除');
+                    cleanup();
+                    resolve(true);
+                };
+
+                cancelButton.onclick = () => {
+                    console.log('🔔 DEBUG: Custom dialog - User clicked キャンセル');
+                    cleanup();
+                    resolve(false);
+                };
+
+                // ESC key support
+                const handleKeydown = (e) => {
+                    if (e.key === 'Escape') {
+                        console.log('🔔 DEBUG: Custom dialog - User pressed ESC');
+                        cleanup();
+                        document.removeEventListener('keydown', handleKeydown);
+                        resolve(false);
+                    }
+                };
+                document.addEventListener('keydown', handleKeydown);
+
+                // Click outside to close
+                overlay.onclick = (e) => {
+                    if (e.target === overlay) {
+                        console.log('🔔 DEBUG: Custom dialog - User clicked outside');
+                        cleanup();
+                        document.removeEventListener('keydown', handleKeydown);
+                        resolve(false);
+                    }
+                };
+
+                // Assemble the modal structure
+                modalHeader.appendChild(title);
+                modalBody.appendChild(messageEl);
+                modalFooter.appendChild(cancelButton);
+                modalFooter.appendChild(okButton);
+                
+                modalContent.appendChild(modalHeader);
+                modalContent.appendChild(modalBody);
+                modalContent.appendChild(modalFooter);
+                overlay.appendChild(modalContent);
+
+                // Add CSS animation keyframes if not already present
+                if (!document.querySelector('#custom-modal-animations')) {
+                    const style = document.createElement('style');
+                    style.id = 'custom-modal-animations';
+                    style.textContent = `
+                        @keyframes modalSlideIn {
+                            from {
+                                opacity: 0;
+                                transform: translateY(-20px) scale(0.95);
+                            }
+                            to {
+                                opacity: 1;
+                                transform: translateY(0) scale(1);
+                            }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+
+                // Add to DOM
+                document.body.appendChild(overlay);
+                console.log('🔔 DEBUG: Unified custom confirmation dialog created and shown');
+            });
+        }
+
         // Generate tone audio (from original GPT-5 design)
         function generateToneAudio(frequency, duration) {
             try {
@@ -4913,7 +5186,6 @@
                 cancelText = 'キャンセル',
                 skipOption = false,
                 skipKey = null,
-                skipText = '今後この確認を表示しない',
                 onConfirm,
                 onCancel
             } = options;
@@ -4939,14 +5211,10 @@
             // Handle skip option
             const skipContainer = document.getElementById('confirmSkipContainer');
             const skipCheckbox = document.getElementById('confirmSkipCheckbox');
-            const skipTextElement = document.getElementById('confirmSkipText');
-            
             if (skipOption && skipKey) {
                 skipContainer.style.display = 'flex';
                 skipCheckbox.checked = false;
                 skipCheckbox.dataset.skipKey = skipKey;
-                // 🔧 FIX: チェックボックステキストを動的に設定
-                skipTextElement.textContent = skipText;
             } else {
                 skipContainer.style.display = 'none';
             }
@@ -4962,15 +5230,9 @@
                 saveConfirmationPreferences();
             }
 
-            // 🔧 FIX: pendingConfirmationを先に保存してからモーダルを閉じる
-            const confirmCallback = pendingConfirmation ? pendingConfirmation.onConfirm : null;
             closeConfirmationModal();
-            
-            if (confirmCallback) {
-                console.log('✅ confirmAction - 削除確認コールバック実行');
-                confirmCallback();
-            } else {
-                console.log('❌ confirmAction - 削除確認コールバックが見つかりません');
+            if (pendingConfirmation && pendingConfirmation.onConfirm) {
+                pendingConfirmation.onConfirm();
             }
         }
 
@@ -5010,7 +5272,6 @@
                 cancelText: 'キャンセル',
                 skipOption: true,
                 skipKey: 'skipDeleteConfirmation',
-                skipText: '今後、削除確認を表示しない',
                 onConfirm: async () => {
                     // console.log('User confirmed deletion for trackId:', trackId);
                     await deleteTrack(trackId);
@@ -5023,46 +5284,22 @@
 
         async function deleteTrack(trackId) {
             try {
-                console.log('🚀 deleteTrack v2.0.0 called for trackId:', trackId);
+                // console.log('Starting track deletion:', trackId);
                 setLoadingState('delete', true);
-                showMessage('トラック削除中...', 'warning');
+                showMessage('...', 'warning');
 
-                // 🔧 FIX: Find the episode to determine if user is owner
-                const episode = episodes.find(ep => ep.trackId === trackId);
-                const isOwner = episode && episode.uploaderUid && episode.uploaderUid === currentUser?.uid;
-                
-                console.log('🔍 Episode ownership check:', { 
-                    trackId, 
-                    episodeFound: !!episode,
-                    episodeUploaderUid: episode?.uploaderUid,
-                    currentUserUid: currentUser?.uid,
-                    isOwner 
-                });
-
-                // 🔧 FIX: Use different API endpoints based on ownership
-                let apiUrl, successMessage;
-                if (isOwner) {
-                    // User owns the track - use full delete endpoint
-                    apiUrl = `/api/tracks/${trackId}`;
-                    successMessage = 'トラックを削除しました';
-                } else {
-                    // User doesn't own the track - use remove from library endpoint
-                    apiUrl = `/api/tracks/${trackId}/remove-from-library`;
-                    successMessage = 'ライブラリから削除しました';
-                }
-
-                console.log('🌐 Using API endpoint:', apiUrl);
-                const response = await apiClient.request(apiUrl, {
+                // console.log('Calling DELETE API for trackId:', trackId);
+                const response = await apiClient.request(`/api/tracks/${trackId}`, {
                     method: 'DELETE'
                 });
 
-                console.log('✅ Delete API response:', response);
-                showMessage(`"${response.trackTitle || episode?.title || 'トラック'}" を${successMessage}`, 'success');
+                // console.log('Delete API response:', response);
+                showMessage('', 'success');
                 
                 // Immediately remove from episodes array for faster UI response
                 const beforeCount = episodes.length;
                 episodes = episodes.filter(ep => ep.trackId !== trackId);
-                console.log(`📊 Removed from episodes array: ${beforeCount} -> ${episodes.length}`);
+                // console.log(` Removed from episodes array: ${beforeCount} -> ${episodes.length}`);
                 
                 // Force clear cache and reload episodes to reflect changes
                 // console.log('Reloading episodes after deletion');
@@ -5505,14 +5742,100 @@
 
         // Open Podcast Playlist
         window.openPodcastPlaylist = async function(playlistId, playlistName) {
-            console.log('🎙️ Opening podcast playlist:', playlistName);
+            console.log('🎙️ Opening podcast playlist:', playlistName, 'with ID:', playlistId);
             
             try {
+                // 🔥 CRITICAL FIX: If only name is provided, resolve to actual ID
+                let actualPlaylistId = playlistId;
+                let actualPlaylistName = playlistName;
+                
+                if (!playlistId && playlistName) {
+                    console.log(`🔍 Resolving playlist name "${playlistName}" to ID...`);
+                    
+                    try {
+                        const response = await fetch('/api/podcast-playlists', {
+                            headers: {
+                                'Authorization': `Bearer ${await currentUser.getIdToken()}`,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            const playlist = data.playlists?.find(p => p.name === playlistName);
+                            if (playlist) {
+                                actualPlaylistId = playlist.id;
+                                actualPlaylistName = playlist.name;
+                                console.log(`✅ Resolved "${playlistName}" to ID: ${actualPlaylistId}`);
+                            } else {
+                                console.warn(`❌ Could not find playlist with name: ${playlistName}`);
+                                showMessage(`プレイリスト「${playlistName}」が見つかりません`, 'error');
+                                return;
+                            }
+                        } else {
+                            throw new Error(`Failed to get playlists: ${response.status}`);
+                        }
+                    } catch (error) {
+                        console.error('🔥 Failed to resolve playlist ID:', error);
+                        showMessage('プレイリストの情報取得に失敗しました', 'error');
+                        return;
+                    }
+                }
+                
+                // Use resolved values
+                playlistId = actualPlaylistId;
+                playlistName = actualPlaylistName;
+                
                 // Close the playlist manager modal first
                 closePodcastPlaylistManager();
                 
-                // Show library screen
+                // Show library screen first
                 showLibraryScreen();
+                
+                // 🔥 NEW FIX: Hide music track areas and show podcast episode areas
+                const episodeGrid = document.getElementById('episodeGrid');
+                const podcastSearchResults = document.getElementById('podcastSearchResults');
+                const noEpisodesMsg = document.getElementById('noEpisodes');
+                
+                // Hide music track display areas
+                if (episodeGrid) {
+                    episodeGrid.style.display = 'none';
+                    console.log('🎙️ Hidden music tracks area (episodeGrid)');
+                }
+                if (noEpisodesMsg) {
+                    noEpisodesMsg.style.display = 'none';
+                }
+                
+                // Show podcast episode display area
+                if (podcastSearchResults) {
+                    podcastSearchResults.style.display = 'block';
+                    console.log('🎙️ Showing podcast episode area (podcastSearchResults)');
+                    
+                    // 🔥 CRITICAL FIX: Remove hidden class from parent section
+                    const parentSection = podcastSearchResults.closest('.section');
+                    if (parentSection) {
+                        parentSection.classList.remove('hidden');
+                        parentSection.style.display = 'block';
+                        console.log('🎙️ Removed hidden class from parent section');
+                    }
+                }
+                
+                // Update the search results header for playlist display
+                const titleElement = document.getElementById('searchResultsTitle');
+                const countElement = document.getElementById('searchResultsCount');
+                if (titleElement) {
+                    titleElement.textContent = `🎙️ ${playlistName}`;
+                }
+                
+                // Clear any existing episode display
+                const episodesList = document.getElementById('episodesList');
+                if (episodesList) {
+                    episodesList.innerHTML = '';
+                    // 🔥 CRITICAL FIX: Ensure episodes list is visible
+                    episodesList.style.display = 'block';
+                    episodesList.style.visibility = 'visible';
+                    console.log('🎙️ Cleared existing episode display and ensured visibility');
+                }
                 
                 // Set the selected playlist with podcast_ prefix
                 const podcastPlaylistId = `podcast_${playlistId}`;
@@ -5547,6 +5870,12 @@
                     // This ensures the podcast playlist content is loaded directly
                     console.log(`🎙️ Directly loading podcast playlist content for: ${podcastPlaylistId}`);
                     await window.loadPodcastPlaylistContent(podcastPlaylistId);
+                    
+                    // Update the count after loading
+                    if (countElement && episodesList) {
+                        const episodeItems = episodesList.querySelectorAll('.episode-item');
+                        countElement.textContent = `${episodeItems.length}エピソード`;
+                    }
                 }
                 
                 // Show success message
@@ -5643,50 +5972,7 @@
             }
         };
 
-        // Remove Podcast From Playlist
-        window.removePodcastFromPlaylist = async function(playlistId, episodeId) {
-            console.log('🎙️ Removing episode from playlist:', episodeId);
-            
-            if (!confirm('このエピソードをプレイリストから削除しますか？')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/podcast-playlists/${playlistId}/episodes/${episodeId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${await currentUser.getIdToken()}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`Failed to remove episode: ${response.status}`);
-                }
-                
-                showMessage('エピソードを削除しました', 'success');
-                
-                // 🔧 ENHANCED EPISODE REMOVAL: Force reload and clear cache
-                const currentPlaylistId = window.selectedPlaylistId;
-                if (currentPlaylistId && currentPlaylistId.startsWith('podcast_')) {
-                    // Clear any cached playlist content
-                    if (window.playlistCache) {
-                        delete window.playlistCache[currentPlaylistId];
-                        delete window.playlistCache[playlistId];
-                    }
-                    
-                    // Force reload playlist content
-                    await window.loadPodcastPlaylistContent(currentPlaylistId);
-                }
-                
-                // Also reload playlist manager to update track counts
-                loadUserPodcastPlaylists();
-                
-            } catch (error) {
-                console.error('Failed to remove episode from playlist:', error);
-                showMessage('エピソードの削除に失敗しました', 'error');
-            }
-        };
+        // Remove Podcast From Playlist - REMOVED (duplicate function)
 
         // Initialize playlist selector
         function initializePlaylistSelector() {
@@ -5739,16 +6025,36 @@
             
             console.log('Using container:', container.id);
             
-            // Show loading indicator
+            // 🚀 ENHANCED: Show detailed loading indicator with progress
             if (loadingIndicator) loadingIndicator.style.display = 'block';
             if (noEpisodes) noEpisodes.style.display = 'none';
-            container.innerHTML = '';
+            
+            // Add detailed loading message to container
+            container.innerHTML = `
+                <div class="podcast-playlist-loading" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <h3 style="margin: 0 0 12px 0; color: var(--text);">ポッドキャストプレイリストを読み込み中...</h3>
+                    <p id="loadingProgress" style="margin: 0; font-size: 0.9em;">プレイリスト情報を取得中...</p>
+                    <div class="loading-dots" style="margin-top: 16px;">
+                        <span style="animation: loading-dot 1.4s infinite ease-in-out both; animation-delay: 0s;">●</span>
+                        <span style="animation: loading-dot 1.4s infinite ease-in-out both; animation-delay: 0.2s;">●</span>
+                        <span style="animation: loading-dot 1.4s infinite ease-in-out both; animation-delay: 0.4s;">●</span>
+                    </div>
+                </div>
+                <style>
+                    @keyframes loading-dot {
+                        0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+                        40% { transform: scale(1); opacity: 1; }
+                    }
+                </style>
+            `;
+            
+            const progressElement = document.getElementById('loadingProgress');
             
             try {
                 // Extract the actual playlist ID (remove 'podcast_' prefix)
                 const actualPlaylistId = podcastPlaylistId.replace('podcast_', '');
                 
-                // Fetch the podcast playlist details
+                // 🔥 API FIX: Use correct endpoint for podcast playlists
                 const response = await fetch(`/api/podcast-playlists/${actualPlaylistId}`, {
                     headers: {
                         'Authorization': `Bearer ${await currentUser.getIdToken()}`,
@@ -5782,52 +6088,190 @@
                     return;
                 }
                 
-                // 🔧 ENHANCED: Fetch full episode details for incomplete episodes
-                const enrichedEpisodes = [];
-                for (const episode of episodes) {
-                    let episodeData;
+                // ⚡ PERFORMANCE OPTIMIZATION: Process episodes in parallel instead of sequential
+                console.log('⚡ Starting parallel episode processing to reduce loading time...');
+                const startTime = performance.now();
+                
+                // 📊 Progress tracking for user feedback
+                let processedCount = 0;
+                const totalCount = episodes.length;
+                const progressElement = document.getElementById('loadingProgress');
+                
+                // 🚀 ULTRA-FAST Helper function with timeout and aggressive caching
+                async function processEpisode(episode) {
+                    const episodeId = episode.id || episode;
                     
-                    if (typeof episode === 'string') {
-                        // If episode is just an ID string, fetch full details
-                        console.log(`🔍 Fetching details for episode ID: ${episode}`);
+                    if (typeof episode === 'string' || (episode.id && !episode.title)) {
+                        // ⚡ SPEED OPTIMIZATION: Add timeout control for API calls
+                        console.log(`🔍 Fast-fetching details for episode ID: ${episodeId}`);
+                        
                         try {
-                            const episodeResponse = await fetch(`/api/episodes/${episode}`, {
+                            // Create AbortController for timeout control
+                            const controller = new AbortController();
+                            const timeoutId = setTimeout(() => controller.abort(), 3000); // 3-second timeout
+                            
+                            // Use podcast search API to get episode details with timeout
+                            const searchResponse = await fetch(`/api/podcasts/search?episode_id=${episodeId}`, {
                                 headers: {
-                                    'Authorization': `Bearer ${await currentUser.getIdToken()}`,
                                     'Content-Type': 'application/json'
-                                }
+                                },
+                                signal: controller.signal
                             });
                             
-                            if (episodeResponse.ok) {
-                                const fullEpisode = await episodeResponse.json();
-                                episodeData = { ...fullEpisode, id: episode };
-                                console.log(`✅ Fetched full episode details:`, episodeData);
+                            clearTimeout(timeoutId);
+                            
+                            if (searchResponse.ok) {
+                                const searchData = await searchResponse.json();
+                                if (searchData.episodes && searchData.episodes.length > 0) {
+                                    const fullEpisode = searchData.episodes.find(ep => ep.id === episodeId) || searchData.episodes[0];
+                                    const episodeData = { 
+                                        ...fullEpisode,
+                                        id: episodeId,
+                                        added_at: episode.added_at || new Date().toISOString()
+                                    };
+                                    console.log(`⚡ Fast-fetched episode details in <3s:`, episodeData.title);
+                                    return episodeData;
+                                } else {
+                                    console.warn(`⚠️ No episode details found for ${episodeId}, using fast fallback`);
+                                    return createFallbackEpisodeData(episodeId, episode.added_at);
+                                }
                             } else {
-                                console.warn(`⚠️ Could not fetch details for episode ${episode}, using fallback`);
-                                episodeData = { id: episode };
+                                console.warn(`⚠️ Search API failed for episode ${episodeId} (${searchResponse.status}), using fast fallback`);
+                                return createFallbackEpisodeData(episodeId, episode.added_at);
                             }
                         } catch (error) {
-                            console.warn(`⚠️ Error fetching episode ${episode}:`, error);
-                            episodeData = { id: episode };
+                            if (error.name === 'AbortError') {
+                                console.warn(`⏰ Episode ${episodeId} fetch timed out after 3s, trying fallback with extended search...`);
+                            } else {
+                                console.warn(`⚠️ Error fetching episode ${episodeId}:`, error.message);
+                            }
+                            
+                            // 🔥 CRITICAL FIX: Try extended search for full episode data in fallback
+                            try {
+                                console.log(`🔍 Trying extended search for episode ${episodeId}...`);
+                                const fallbackSearchResponse = await fetch(`/api/podcasts/search?episode_id=${episodeId}`, {
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    }
+                                    // No timeout for fallback search
+                                });
+                                
+                                if (fallbackSearchResponse.ok) {
+                                    const fallbackSearchData = await fallbackSearchResponse.json();
+                                    if (fallbackSearchData.episodes && fallbackSearchData.episodes.length > 0) {
+                                        const fallbackEpisode = fallbackSearchData.episodes.find(ep => ep.id === episodeId) || fallbackSearchData.episodes[0];
+                                        const fallbackEpisodeData = { 
+                                            ...fallbackEpisode,
+                                            id: episodeId,
+                                            added_at: episode.added_at || new Date().toISOString()
+                                        };
+                                        console.log(`✅ Extended search successful for ${episodeId}:`, fallbackEpisodeData.title);
+                                        console.log(`🎵 Audio URL found: ${fallbackEpisodeData.audio_url ? 'YES' : 'NO'}`);
+                                        return fallbackEpisodeData;
+                                    }
+                                }
+                            } catch (fallbackError) {
+                                console.warn(`⚠️ Fallback search also failed for ${episodeId}:`, fallbackError.message);
+                            }
+                            
+                            return createFallbackEpisodeData(episodeId, episode.added_at);
                         }
-                    } else if (episode.id) {
-                        // If episode is already an object with properties
-                        episodeData = episode;
+                    } else if (episode.id && episode.title) {
+                        // If episode already has full details
+                        console.log(`⚡ Episode already has full details: ${episode.title}`);
+                        return episode;
                     } else {
                         // Fallback for unexpected data structure
-                        episodeData = episode;
+                        console.log(`⚡ Using fast fallback for episode: ${episodeId}`);
+                        return createFallbackEpisodeData(episodeId, episode.added_at);
+                    }
+                }
+                
+                // 📊 Wrapper function to track progress
+                async function processEpisodeWithProgress(episode) {
+                    const result = await processEpisode(episode);
+                    processedCount++;
+                    if (progressElement) {
+                        progressElement.textContent = `エピソード詳細を取得中... (${processedCount}/${totalCount})`;
+                    }
+                    return result;
+                }
+                
+                // 🚀 Process all episodes in parallel using Promise.all with error handling
+                let enrichedEpisodes = [];
+                try {
+                    console.log(`🚀 Starting Promise.all for ${episodes.length} episodes...`);
+                    enrichedEpisodes = await Promise.all(episodes.map(processEpisodeWithProgress));
+                    console.log(`✅ Promise.all completed successfully with ${enrichedEpisodes.length} episodes`);
+                } catch (promiseError) {
+                    console.error('🔥 Promise.all failed, processing episodes individually:', promiseError);
+                    
+                    // Fallback: Process episodes one by one to avoid total failure
+                    enrichedEpisodes = [];
+                    processedCount = 0; // Reset counter for individual processing
+                    for (let i = 0; i < episodes.length; i++) {
+                        try {
+                            console.log(`🔄 Processing episode ${i + 1}/${episodes.length} individually...`);
+                            if (progressElement) {
+                                progressElement.textContent = `エピソード詳細を取得中... (${i + 1}/${totalCount})`;
+                            }
+                            const processedEpisode = await processEpisode(episodes[i]);
+                            enrichedEpisodes.push(processedEpisode);
+                        } catch (singleEpisodeError) {
+                            console.error(`❌ Failed to process episode ${i + 1}:`, singleEpisodeError);
+                            // Add fallback episode data
+                            const episodeId = episodes[i].id || episodes[i];
+                            enrichedEpisodes.push(createFallbackEpisodeData(episodeId, episodes[i].added_at));
+                        }
+                        processedCount = i + 1;
+                    }
+                }
+                
+                const endTime = performance.now();
+                const processingTimeMs = endTime - startTime;
+                console.log(`⚡ Episode processing completed in ${processingTimeMs.toFixed(2)}ms (${(processingTimeMs/1000).toFixed(2)} seconds)`);
+                console.log(`⚡ Final result: ${enrichedEpisodes.length} episodes processed`);
+                
+                // 📊 Final progress update
+                if (progressElement) {
+                    progressElement.textContent = `エピソード一覧を表示中... (${enrichedEpisodes.length}件完了)`;
+                }
+                
+                // Helper function to create fallback episode data
+                function createFallbackEpisodeData(episodeId, addedAt) {
+                    const parts = episodeId.split('_');
+                    let podcastName = 'Unknown Podcast';
+                    let episodeTitle = `Episode ${parts[parts.length - 1]}`;
+                    
+                    if (parts.length >= 2) {
+                        // Extract podcast name from ID
+                        podcastName = parts.slice(0, -1).join(' ')
+                            .replace(/_/g, ' ')
+                            .split(' ')
+                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(' ');
+                        episodeTitle = `Episode (ID: ${parts[parts.length - 1]})`;
                     }
                     
-                    enrichedEpisodes.push(episodeData);
+                    return {
+                        id: episodeId,
+                        title: episodeTitle,
+                        podcast_name: podcastName,
+                        added_at: addedAt || new Date().toISOString(),
+                        description: 'Episode details are being loaded...'
+                    };
                 }
                 
                 console.log(`🎙️ Enriched ${enrichedEpisodes.length} episodes with full details`);
                 
                 // Display episodes
                 let html = '';
+                console.log('🔍 Starting HTML generation for enrichedEpisodes:', enrichedEpisodes.length);
                 enrichedEpisodes.forEach((episode, index) => {
+                    console.log(`🔍 Processing episode ${index + 1}:`, episode);
                     const episodeId = episode.id;
                     const addedAt = episode.added_at;
+                    console.log(`🔍 Episode ID: ${episodeId}, Added At: ${addedAt}`);
                     
                     // Extract podcast name from ID if not available in episode data
                     let podcastName = episode.podcast_name;
@@ -5847,7 +6291,7 @@
                                       episode.published_date ? new Date(episode.published_date).toLocaleDateString('ja-JP') : '';
                     
                     html += `
-                        <div class="episode-item" data-episode-id="${episodeId || ''}" style="margin-bottom: 16px; padding: 16px; border: 1px solid rgba(159, 247, 234, 0.3); border-radius: 12px; background: rgba(159, 247, 234, 0.05);">
+                        <div class="podcast-episode-item episode-item" data-episode-id="${episodeId || ''}" style="margin-bottom: 16px; padding: 16px; border: 1px solid rgba(159, 247, 234, 0.3); border-radius: 12px; background: rgba(159, 247, 234, 0.05);">
                             <div class="episode-header" style="display: flex; gap: 12px; align-items: start;">
                                 ${episode.artwork ? `
                                     <img src="${episode.artwork}" alt="${displayTitle}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
@@ -5872,24 +6316,22 @@
                                 </p>
                             ` : ''}
                             <div class="episode-actions" style="margin-top: 12px; display: flex; gap: 8px;">
-                                ${episode.audio_url ? `
-                                    <button class="auth-button small" onclick="playPodcastEpisode('${episodeId}', '${episode.audio_url}', '${displayTitle.replace(/'/g, "\\'")}', '${displayPodcastName.replace(/'/g, "\\'")}')">
-                                        ▶️ 再生
-                                    </button>
-                                ` : `
-                                    <button class="auth-button small" disabled style="opacity: 0.5;" title="オーディオファイルが見つかりません">
-                                        🔍 詳細取得中...
-                                    </button>
-                                `}
+                                <button class="auth-button small play-button" onclick="playEpisode('${episodeId}', '${displayTitle.replace(/'/g, "\\'")}', '${displayPodcastName.replace(/'/g, "\\'")}')">
+                                    ▶️ 再生
+                                </button>
                                 <button class="auth-button small secondary" onclick="removePodcastFromPlaylist('${actualPlaylistId}', '${episodeId}')">
                                     🗑️ 削除
                                 </button>
                             </div>
                         </div>
                     `;
+                    console.log(`🔍 Generated HTML for episode ${index + 1}, current html length:`, html.length);
                 });
                 
+                console.log('🔍 Final HTML length:', html.length);
+                console.log('🔍 First 500 characters of HTML:', html.substring(0, 500));
                 container.innerHTML = html;
+                console.log('🔍 Container innerHTML after assignment:', container.innerHTML.length);
                 
             } catch (error) {
                 console.error('Failed to load podcast playlist content:', error);
@@ -5904,6 +6346,106 @@
                         </div>
                     `;
                 }
+            }
+        }
+
+        // Remove podcast episode from playlist
+        window.removePodcastFromPlaylist = async function(playlistId, episodeId) {
+            // 🔧 Enhanced debugging and error handling
+            console.log('🔧 DEBUG: removePodcastFromPlaylist called', {
+                playlistId,
+                episodeId,
+                currentUser: currentUser ? 'authenticated' : 'null',
+                userEmail: currentUser?.email
+            });
+
+            if (!currentUser) {
+                console.error('🚫 ERROR: User not authenticated');
+                showMessage('プレイリストから削除するにはログインが必要です', 'warning');
+                return;
+            }
+
+            console.log('🔔 DEBUG: Showing custom confirmation dialog...');
+            const confirmResult = await showCustomConfirmDialog('このエピソードをプレイリストから削除しますか？');
+            console.log('🔔 DEBUG: Custom confirmation result:', confirmResult);
+
+            if (!confirmResult) {
+                console.log('🔔 DEBUG: User cancelled deletion');
+                return;
+            }
+
+            try {
+                console.log(`🗑️ Removing episode ${episodeId} from playlist ${playlistId}`);
+                showMessage('プレイリストから削除中...', 'info');
+
+                console.log('🔧 DEBUG: Getting ID token...');
+                const token = await firebaseAuth.getIdToken();
+                console.log('🔧 DEBUG: Token obtained, making DELETE request...');
+                
+                const deleteUrl = `/api/podcast-playlists/${playlistId}/episodes/${episodeId}`;
+                console.log('🔧 DEBUG: DELETE URL:', deleteUrl);
+                
+                const response = await fetch(deleteUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('🔧 DEBUG: Response status:', response.status, response.statusText);
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('🚫 ERROR: Delete request failed:', errorData);
+                    throw new Error(errorData.error || `削除に失敗しました (${response.status})`);
+                }
+
+                showMessage('プレイリストから削除しました', 'success');
+                console.log(`✅ Successfully removed episode ${episodeId} from playlist ${playlistId}`);
+
+                // 🚀 FAST METHOD: Remove episode element directly from DOM (no reload)
+                console.log('🔧 DEBUG: Using fast DOM removal method...');
+                const episodeElement = document.querySelector(`[data-episode-id="${episodeId}"]`);
+                if (episodeElement) {
+                    episodeElement.remove();
+                    console.log(`🔧 DEBUG: Removed episode element for ${episodeId}`);
+                    
+                    // Update the episode count display
+                    console.log('🔧 DEBUG: Updating episode count display...');
+                    const countElement = document.getElementById('searchResultsCount');
+                    const episodesList = document.getElementById('episodesList');
+                    if (countElement && episodesList) {
+                        const episodeItems = episodesList.querySelectorAll('.episode-item');
+                        const newCount = episodeItems.length;
+                        countElement.textContent = `${newCount}エピソード`;
+                        console.log(`🔧 DEBUG: Updated episode count display to ${newCount} episodes`);
+                    } else {
+                        console.log('🔧 DEBUG: Could not find count element or episodes list for update');
+                    }
+                } else {
+                    console.log(`🔧 DEBUG: Could not find episode element for ${episodeId}, falling back to safe reload method`);
+                    
+                    // 🛡️ FALLBACK: Safe method with full reload (backup implementation)
+                    console.log('🔧 DEBUG: Using safe reload fallback method...');
+                    await window.loadPodcastPlaylistContent(playlistId);
+                    
+                    // Update the episode count display after reload
+                    console.log('🔧 DEBUG: Updating episode count display after reload...');
+                    const countElement = document.getElementById('searchResultsCount');
+                    const episodesList = document.getElementById('episodesList');
+                    if (countElement && episodesList) {
+                        const episodeItems = episodesList.querySelectorAll('.episode-item');
+                        const newCount = episodeItems.length;
+                        countElement.textContent = `${newCount}エピソード`;
+                        console.log(`🔧 DEBUG: Updated episode count display to ${newCount} episodes (fallback)`);
+                    }
+                }
+
+            } catch (error) {
+                console.error('🚫 ERROR: Failed to remove episode from playlist:', error);
+                console.error('🚫 ERROR: Error stack:', error.stack);
+                showMessage(`プレイリストからの削除に失敗しました: ${error.message}`, 'error');
             }
         }
 
@@ -6208,7 +6750,6 @@
                 cancelText: 'キャンセル',
                 skipOption: true,
                 skipKey: 'skipDeleteConfirmation',
-                skipText: '今後、プレイリスト削除の確認を表示しない',
                 onConfirm: async () => {
                     await performPlaylistDeletion(playlistId);
                 }
@@ -8580,7 +9121,7 @@
                 <div id="confirmSkipContainer" class="confirm-skip-container" style="display: none;">
                     <label class="skip-checkbox-label">
                         <input type="checkbox" id="confirmSkipCheckbox">
-                        <span id="confirmSkipText">今後この確認を表示しない</span>
+                        <span></span>
                     </label>
                 </div>
             </div>
@@ -9479,112 +10020,6 @@
             console.log('📊 Debug data exported:', debugData);
             alert('デバッグデータをエクスポートしました');
         };
-
-        // 🔧 FIX: 削除機能のグローバル定義 - JavaScript初期化エラー対策
-        window.ensureDeleteFunction = function() {
-            if (typeof window.deleteTrack !== 'function') {
-                console.log('🔧 Defining deleteTrack function globally');
-                
-                window.deleteTrack = async function(trackId) {
-                    try {
-                        console.log('🚀 deleteTrack called for trackId:', trackId);
-                        
-                        if (typeof apiClient === 'undefined') {
-                            console.error('❌ apiClient is not available');
-                            showMessage('削除機能を利用するために必要なモジュールが読み込まれていません。', 'error');
-                            return;
-                        }
-                        
-                        console.log('🌐 API削除リクエストを実行...');
-                        const response = await apiClient.request(`/api/tracks/${trackId}`, {
-                            method: 'DELETE'
-                        });
-                        
-                        console.log('✅ 削除API成功:', response);
-                        showMessage(`"${response.trackTitle || trackId}" を削除しました`, 'success');
-                        
-                        // エピソード配列から即座に削除
-                        if (typeof episodes !== 'undefined') {
-                            episodes = episodes.filter(ep => ep.trackId !== trackId);
-                        }
-                        
-                        // キャッシュクリアしてエピソードを再読み込み
-                        if (typeof forceClearEpisodesCache === 'function') {
-                            forceClearEpisodesCache();
-                        }
-                        if (typeof loadEpisodes === 'function') {
-                            await loadEpisodes();
-                        }
-                        
-                        // プレイヤーが削除されたトラックを再生していた場合は閉じる
-                        if (typeof getCurrentPlayingTrackId === 'function' && typeof closePlayer === 'function') {
-                            const currentPlayingId = getCurrentPlayingTrackId();
-                            if (currentPlayingId === trackId) {
-                                closePlayer();
-                            }
-                        }
-                        
-                    } catch (error) {
-                        console.error('❌ 削除エラー:', error);
-                        const errorMessage = error.message.includes('404') ? 'トラックが見つかりません' :
-                                           error.message.includes('403') ? '削除権限がありません' :
-                                           error.message.includes('401') ? 'ログインが必要です' :
-                                           '削除に失敗しました';
-                        showMessage(`削除エラー: ${errorMessage}`, 'error');
-                    }
-                };
-            }
-            
-            // pendingConfirmation変数も定義
-            if (typeof window.pendingConfirmation === 'undefined') {
-                window.pendingConfirmation = null;
-            }
-            
-            console.log('✅ Delete function availability check completed');
-        };
-        
-        // 🔧 FIX: confirmDeleteTrack関数も確実に定義
-        window.ensureConfirmDeleteFunction = function() {
-            if (typeof window.confirmDeleteTrack !== 'function') {
-                window.confirmDeleteTrack = function(trackId) {
-                    console.log('🔧 confirmDeleteTrack called for trackId:', trackId);
-                    
-                    if (typeof confirmAction === 'function') {
-                        confirmAction(
-                            'トラック削除確認',
-                            'このトラックを削除してもよろしいですか？',
-                            () => {
-                                console.log('削除確認OK - deleteTrack実行');
-                                if (typeof deleteTrack === 'function') {
-                                    deleteTrack(trackId);
-                                } else {
-                                    console.error('deleteTrack function not available');
-                                }
-                            }
-                        );
-                    } else {
-                        // fallback: 通常の確認ダイアログ
-                        if (confirm('このトラックを削除してもよろしいですか？')) {
-                            if (typeof deleteTrack === 'function') {
-                                deleteTrack(trackId);
-                            }
-                        }
-                    }
-                };
-            }
-        };
-        
-        // 🔧 削除機能の確実な初期化
-        document.addEventListener('DOMContentLoaded', function() {
-            window.ensureDeleteFunction();
-            window.ensureConfirmDeleteFunction();
-        });
-        
-        // さらなる保険として遅延初期化も実行
-        setTimeout(() => {
-            window.ensureDeleteFunction();
-            window.ensureConfirmDeleteFunction();
-        }, 1000);
     </script>
 
 </body>
