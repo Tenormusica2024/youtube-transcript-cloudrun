@@ -1,0 +1,165 @@
+=== AI FM - Library Management Functionality Fix Report ===
+Date: Sun Aug 24 23:34:15 2025
+Deployment: podcast-app-00020-5ld
+
+🚨 ISSUE IDENTIFIED AND FIXED:
+
+❌ Problem:
+- REMOVE FROM LIBRARY function was not working (only simulation)
+- ADD TO PLAYLIST function was also placeholder-only
+- No actual API integration for personal library management
+- Users couldn't manage their personal collections properly
+
+✅ Root Causes:
+1. removeFromLibrary() function only showed simulation with timeout
+2. addToPlaylist() function only showed placeholder messages
+3. Backend had no API endpoints for personal library management
+4. No user_libraries collection in Firestore for personal library tracking
+
+🔧 FIXES IMPLEMENTED:
+
+1. Backend API Endpoints Added (app.py):
+
+   A. Remove from Library Endpoint:
+   - POST /api/tracks/{track_id}/remove-from-library
+   - Proper authentication with @verify_token
+   - Validates track existence and user permissions
+   - Manages user_libraries Firestore collection
+   - Prevents owners from using library removal (directs to permanent deletion)
+   - Returns detailed success/error messages
+
+   B. Add to Library Endpoint:
+   - POST /api/tracks/{track_id}/add-to-library
+   - Authentication required with proper token verification
+   - Only public tracks can be added to libraries
+   - Creates user_libraries collection if doesn't exist
+   - Prevents duplicate additions
+   - Comprehensive error handling
+
+2. Frontend API Integration Enhanced (templates/index.html):
+
+   A. removeFromLibrary() Function - Full Implementation:
+   - Replaced simulation with actual API call to /api/tracks/{trackId}/remove-from-library
+   - Added comprehensive console logging for debugging
+   - Enhanced error handling with specific error types (404/401/503)
+   - Contextual error messages for different failure scenarios
+   - Proper confirmation dialog and user feedback
+   - Episode list refresh after successful removal
+   - Audio player cleanup if removed track was playing
+
+   B. addToPlaylist() Function - Real API Integration:
+   - Updated to call /api/tracks/{trackId}/add-to-library endpoint
+   - Added proper async/await implementation
+   - Enhanced logging and error handling
+   - Specific handling for "already in library" scenario
+   - Loading states and user feedback improvements
+   - Renamed to reflect actual functionality (library management)
+
+📋 TECHNICAL CHANGES:
+
+Backend Additions (app.py):
+```python
+@app.route('/api/tracks/<track_id>/remove-from-library', methods=['DELETE'])
+@verify_token
+def remove_from_library(track_id):
+    """個人ライブラリからトラック削除"""
+    # Authentication and track existence validation
+    # User library management in Firestore
+    # Owner restriction (must use permanent delete)
+    # Detailed success/error responses
+
+@app.route('/api/tracks/<track_id>/add-to-library', methods=['POST'])
+@verify_token  
+def add_to_library(track_id):
+    """個人ライブラリにトラック追加"""
+    # Only public tracks allowed
+    # User library creation and management
+    # Duplicate prevention
+    # Comprehensive error handling
+```
+
+Frontend Enhancements (templates/index.html):
+```javascript
+// Enhanced removeFromLibrary with actual API call
+async function removeFromLibrary(trackId, title) {
+    const response = await apiClient.request(`/api/tracks/${trackId}/remove-from-library`, {
+        method: 'DELETE'
+    });
+    // Detailed logging, error handling, UI updates
+}
+
+// Enhanced addToPlaylist with library API integration
+async function addToPlaylist(trackId) {
+    const response = await apiClient.request(`/api/tracks/${trackId}/add-to-library`, {
+        method: 'POST'
+    });
+    // Proper async handling, error messages, user feedback
+}
+```
+
+🎯 CURRENT BEHAVIOR:
+
+1. **Add to Library (ADD TO PLAYLIST)**:
+   - Calls real API endpoint with authentication
+   - Only works for public tracks
+   - Creates user_libraries collection if needed
+   - Prevents duplicate additions
+   - Shows success message with track title
+   - Handles various error scenarios properly
+
+2. **Remove from Library (REMOVE FROM LIBRARY)**:
+   - Authentic API call with proper authentication
+   - Validates track exists in user's library
+   - Removes track from user_libraries collection
+   - Refreshes episode list after removal
+   - Closes audio player if removed track was playing
+   - Comprehensive error handling and user feedback
+
+3. **Permission Management**:
+   - Track owners directed to use DELETE TRACK (permanent deletion)
+   - Non-owners use REMOVE FROM LIBRARY (personal library management)
+   - Clear separation between system deletion and library management
+   - Proper authentication required for all operations
+
+🧪 DEPLOYMENT STATUS:
+Service: podcast-app
+Region: us-central1
+URL: https://podcast-app-ycqe3vmjva-uc.a.run.app
+Revision: podcast-app-00020-5ld
+Status: ACTIVE ✅
+Health Check: ✅ (200 OK)
+
+✅ VERIFICATION STEPS:
+1. Visit app and log in
+2. Navigate to any public track
+3. Click menu (⋯) → "ADD TO PLAYLIST" 
+4. Verify success message and console logs
+5. Click menu (⋯) → "REMOVE FROM LIBRARY"
+6. Confirm removal and verify episode list refresh
+7. Check browser console for detailed API call logs
+
+🔍 API ENDPOINTS ADDED:
+- DELETE /api/tracks/{track_id}/remove-from-library
+- POST /api/tracks/{track_id}/add-to-library
+
+🎨 DATA STRUCTURE:
+Firestore Collection: user_libraries
+Document ID: {user_uid}
+Structure:
+```json
+{
+  "userId": "user_uid",
+  "savedTracks": ["track_id_1", "track_id_2"],
+  "createdAt": "timestamp",
+  "updatedAt": "timestamp"
+}
+```
+
+🧠 ERROR HANDLING IMPROVEMENTS:
+- Specific error messages for different scenarios
+- Console logging for debugging purposes
+- User-friendly error communication
+- Proper loading states and feedback
+- Authentication and permission validation
+
+=== LIBRARY MANAGEMENT FUNCTIONALITY - ISSUE RESOLVED ===

@@ -1,0 +1,85 @@
+=== AI FM - Delete Option Visibility Fix Report ===
+Date: Sat Aug 24 23:04:05     2025
+Deployment: podcast-app-00018-rrd
+
+🚨 ISSUE IDENTIFIED AND FIXED:
+
+❌ Problem:
+- Delete options only shown to track owners (uploaders)
+- Regular logged-in users couldn't see delete options
+- Non-logged-in users shouldn't see delete options
+
+✅ Root Cause:
+- Menu logic incorrectly restricted delete options to track owners only
+- Should show delete options to ALL logged-in users
+- Different delete actions needed for owners vs. non-owners
+
+🔧 FIXES IMPLEMENTED:
+
+1. Menu Logic Correction:
+   - BEFORE: Delete option only for `episode.uploaderUid === currentUser.uid`
+   - AFTER: Delete option for ALL logged-in users (`currentUser` exists)
+
+2. Smart Delete Action Selection:
+   - Track Owner: "DELETE TRACK" → `confirmDeleteTrack()`
+   - Other Users: "REMOVE FROM LIBRARY" → `removeFromLibrary()`
+
+📋 TECHNICAL CHANGES:
+
+HTML Menu Structure (Before):
+```html
+${episode.uploaderUid === currentUser.uid ? 
+    `<button>DELETE TRACK</button>` : ''
+}
+```
+
+HTML Menu Structure (After):
+```html
+<button onclick="${episode.uploaderUid === currentUser.uid ? 
+    `confirmDeleteTrack(...)` : `removeFromLibrary(...)`
+}">
+    ${episode.uploaderUid === currentUser.uid ? 
+        'DELETE TRACK' : 'REMOVE FROM LIBRARY'
+    }
+</button>
+```
+
+🎯 CURRENT BEHAVIOR:
+
+1. **Non-logged-in users**:
+   - No menu button visible ✅
+   - No delete options ✅
+
+2. **Logged-in users (Track Owner)**:
+   - Menu button visible ✅
+   - "ADD TO PLAYLIST" option ✅
+   - "DELETE TRACK" option ✅
+   - Permanent deletion from system
+
+3. **Logged-in users (Not Owner)**:
+   - Menu button visible ✅
+   - "ADD TO PLAYLIST" option ✅
+   - "REMOVE FROM LIBRARY" option ✅
+   - Personal library management
+
+🧪 DEPLOYMENT STATUS:
+Service: podcast-app
+Region: us-central1
+URL: https://podcast-app-ycqe3vmjva-uc.a.run.app
+Revision: podcast-app-00018-rrd
+Status: ACTIVE ✅
+
+✅ VERIFICATION STEPS:
+1. Visit app without login → No menu buttons
+2. Log in → Menu buttons appear on all tracks
+3. Click menu on your uploaded track → See "DELETE TRACK"
+4. Click menu on others' tracks → See "REMOVE FROM LIBRARY"
+5. Both options show confirmation dialogs
+
+🎨 UI/UX Improvements:
+- Consistent menu presence for all logged-in users
+- Clear distinction between permanent deletion and library removal
+- Proper permission-based action labeling
+- Maintained compact 70% button size
+
+=== DELETE OPTION VISIBILITY - ISSUE RESOLVED ===

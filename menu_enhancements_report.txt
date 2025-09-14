@@ -1,0 +1,102 @@
+=== AI FM - Menu Enhancements Implementation Report ===
+Date: Sat Aug 24 22:58:45     2025
+Deployment: podcast-app-00017-nhg
+
+✅ ENHANCEMENTS COMPLETED:
+
+🎯 Menu Button Size Reduction:
+   - Width/Height: 32px → 22px (70% of original size)
+   - Padding: 8px → 6px
+   - Font-size: 16px → 12px
+   - Maintains visual clarity and accessibility
+
+📋 Enhanced Menu Options:
+1. ADD TO PLAYLIST
+   - Available for all logged-in users
+   - Shows placeholder message for future implementation
+
+2. DELETE TRACK (Track Owners)
+   - Only for users who uploaded the track
+   - Full deletion from system
+   - Confirmation dialog with title display
+
+3. REMOVE FROM LIBRARY (Other Users)
+   - For tracks uploaded by other users
+   - Personal library management
+   - Confirmation dialog for user awareness
+   - Placeholder for future implementation
+
+🔧 Technical Implementation:
+
+JavaScript Functions:
+```javascript
+// New function for library removal
+function removeFromLibrary(trackId, title) {
+    // Confirmation dialog
+    confirm(`"${title}" をライブラリから削除しますか？\n\n注意: この操作は元に戻せません。`);
+    // Shows placeholder message for future implementation
+}
+```
+
+CSS Changes:
+```css
+.menu-button {
+    width: 22px;     /* was 32px */
+    height: 22px;    /* was 32px */  
+    padding: 6px;    /* was 8px */
+    font-size: 12px; /* was 16px */
+}
+```
+
+HTML Menu Structure:
+```html
+<div class="menu-dropdown">
+    <button class="menu-item">ADD TO PLAYLIST</button>
+    
+    <!-- Track Owner -->
+    <button class="menu-item delete-item">DELETE TRACK</button>
+    
+    <!-- OR Other Users -->
+    <button class="menu-item delete-item">REMOVE FROM LIBRARY</button>
+</div>
+```
+
+🎨 UI/UX Improvements:
+- Compact button size for cleaner interface
+- Clear distinction between DELETE and REMOVE actions
+- Consistent hover effects for all menu items
+- Proper confirmation dialogs for destructive actions
+
+📱 User Experience:
+- Less visual clutter with smaller buttons
+- Two types of removal actions:
+  * DELETE TRACK: Permanent system removal (owners only)
+  * REMOVE FROM LIBRARY: Personal library management (others)
+- Clear confirmation messages
+
+🧪 DEPLOYMENT STATUS:
+Service: podcast-app
+Region: us-central1
+URL: https://podcast-app-ycqe3vmjva-uc.a.run.app
+Revision: podcast-app-00017-nhg
+Status: ACTIVE ✅
+
+🎯 CURRENT BEHAVIOR:
+1. Track Owner Menu:
+   - ADD TO PLAYLIST (placeholder)
+   - DELETE TRACK (functional confirmation)
+
+2. Other Users Menu:
+   - ADD TO PLAYLIST (placeholder)
+   - REMOVE FROM LIBRARY (placeholder confirmation)
+
+3. Button Size: 30% smaller for cleaner UI
+
+✅ VERIFICATION COMPLETED:
+- Health check: ✅ (200 OK)
+- Menu button size: ✅ (70% of original)
+- Delete options: ✅ (Both types available)
+- Confirmation dialogs: ✅ (Working)
+- Menu positioning: ✅ (Maintained)
+
+=== MENU ENHANCEMENTS - IMPLEMENTATION COMPLETE ===

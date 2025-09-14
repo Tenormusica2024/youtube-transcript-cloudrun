@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playlist Issue Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .info {
+            color: #17a2b8;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎵 Playlist Issue Investigation</h1>
+
+    <div class="test-section">
+        <h2>1. Login & Authentication</h2>
+        <button onclick="performLogin()">Login with Test Account</button>
+        <button onclick="checkAuth()">Check Auth Status</button>
+        <div id="authLog" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Load Current Data</h2>
+        <button onclick="loadAllTracks()">Load All Tracks</button>
+        <button onclick="loadAllPlaylists()">Load All Playlists</button>
+        <button onclick="analyzeData()">Analyze Data Structure</button>
+        <div id="dataLog" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Reproduce Issue</h2>
+        <button onclick="uploadTestTrack()">Upload Test MP3</button>
+        <button onclick="addToSpecificPlaylist()">Add to Specific Playlist</button>
+        <button onclick="checkAllPlaylists()">Check All Playlists</button>
+        <div id="issueLog" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Debug Information</h2>
+        <button onclick="checkGlobalVariables()">Check Global Variables</button>
+        <button onclick="checkFilterLogic()">Test Filter Logic</button>
+        <button onclick="exportDebugData()">Export Debug Data</button>
+        <div id="debugLog" class="log"></div>
+    </div>
+
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBNlMCLm2xvWzRmSGN_dNJBriDrUQ9-sH8",
+            authDomain: "yt-transcript-demo-2025.firebaseapp.com",
+            projectId: "yt-transcript-demo-2025",
+            storageBucket: "yt-transcript-demo-2025.firebasestorage.app",
+            messagingSenderId: "1116582221241",
+            appId: "1:1116582221241:web:d7e5c973e0f438a96f5eca"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Global variables
+        window.currentUser = null;
+        window.allTracks = [];
+        window.allPlaylists = [];
+        window.debugData = {};
+
+        // Logging function
+        function log(message, type = 'info', targetId = 'authLog') {
+            const logElement = document.getElementById(targetId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            logElement.innerHTML += `<span class="${className}">[${timestamp}]</span> ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        // 1. Authentication functions
+        window.performLogin = async function() {
+            try {
+                log('Attempting login...', 'info', 'authLog');
+                const credential = await signInWithEmailAndPassword(auth, 'dragonrondo@gmail.com', 'Avalon2024');
+                window.currentUser = credential.user;
+                log(`✅ Logged in as: ${credential.user.email}`, 'success', 'authLog');
+                
+                // Get ID token
+                const idToken = await credential.user.getIdToken();
+                log(`Token obtained: ${idToken.substring(0, 20)}...`, 'info', 'authLog');
+                
+                // Store for API calls
+                window.authToken = idToken;
+            } catch (error) {
+                log(`❌ Login failed: ${error.message}`, 'error', 'authLog');
+            }
+        };
+
+        window.checkAuth = function() {
+            if (window.currentUser) {
+                log(`✅ Authenticated as: ${window.currentUser.email}`, 'success', 'authLog');
+                log(`UID: ${window.currentUser.uid}`, 'info', 'authLog');
+            } else {
+                log('❌ Not authenticated', 'error', 'authLog');
+            }
+        };
+
+        // 2. Data loading functions
+        window.loadAllTracks = async function() {
+            try {
+                log('Loading all tracks...', 'info', 'dataLog');
+                const tracksSnapshot = await getDocs(collection(db, 'tracks'));
+                window.allTracks = [];
+                
+                tracksSnapshot.forEach((doc) => {
+                    const track = { trackId: doc.id, ...doc.data() };
+                    window.allTracks.push(track);
+                });
+                
+                log(`✅ Loaded ${window.allTracks.length} tracks`, 'success', 'dataLog');
+                log(`Track IDs: ${window.allTracks.map(t => t.trackId).join(', ')}`, 'info', 'dataLog');
+            } catch (error) {
+                log(`❌ Failed to load tracks: ${error.message}`, 'error', 'dataLog');
+            }
+        };
+
+        window.loadAllPlaylists = async function() {
+            try {
+                log('Loading all playlists...', 'info', 'dataLog');
+                const playlistsSnapshot = await getDocs(collection(db, 'playlists'));
+                window.allPlaylists = [];
+                
+                playlistsSnapshot.forEach((doc) => {
+                    const playlist = { playlistId: doc.id, ...doc.data() };
+                    window.allPlaylists.push(playlist);
+                });
+                
+                log(`✅ Loaded ${window.allPlaylists.length} playlists`, 'success', 'dataLog');
+                
+                // Show playlist details
+                window.allPlaylists.forEach(p => {
+                    log(`📁 ${p.name}: ${p.tracks ? p.tracks.length : 0} tracks`, 'info', 'dataLog');
+                    if (p.tracks && p.tracks.length > 0) {
+                        log(`   Track IDs: ${p.tracks.join(', ')}`, 'info', 'dataLog');
+                    }
+                });
+            } catch (error) {
+                log(`❌ Failed to load playlists: ${error.message}`, 'error', 'dataLog');
+            }
+        };
+
+        window.analyzeData = function() {
+            log('=== Data Analysis ===', 'info', 'dataLog');
+            
+            // Check for tracks that appear in multiple playlists
+            const trackToPlaylists = {};
+            window.allPlaylists.forEach(playlist => {
+                if (playlist.tracks) {
+                    playlist.tracks.forEach(trackId => {
+                        if (!trackToPlaylists[trackId]) {
+                            trackToPlaylists[trackId] = [];
+                        }
+                        trackToPlaylists[trackId].push(playlist.name);
+                    });
+                }
+            });
+            
+            // Report findings
+            Object.entries(trackToPlaylists).forEach(([trackId, playlists]) => {
+                if (playlists.length > 1) {
+                    log(`⚠️ Track ${trackId} appears in multiple playlists: ${playlists.join(', ')}`, 'warning', 'dataLog');
+                } else {
+                    log(`✅ Track ${trackId} is only in: ${playlists[0]}`, 'success', 'dataLog');
+                }
+            });
+            
+            // Check for orphaned tracks
+            const allTrackIds = window.allTracks.map(t => t.trackId);
+            const tracksInPlaylists = Object.keys(trackToPlaylists);
+            const orphanedTracks = allTrackIds.filter(id => !tracksInPlaylists.includes(id));
+            
+            if (orphanedTracks.length > 0) {
+                log(`📌 Orphaned tracks (not in any playlist): ${orphanedTracks.join(', ')}`, 'info', 'dataLog');
+            }
+        };
+
+        // 3. Issue reproduction functions
+        window.uploadTestTrack = async function() {
+            log('Creating test track...', 'info', 'issueLog');
+            
+            const testTrackId = 'test_track_' + Date.now();
+            const testTrack = {
+                title: 'Test Track ' + new Date().toLocaleString(),
+                artist: 'Test Artist',
+                url: 'https://example.com/test.mp3',
+                duration: 180,
+                uploadedBy: window.currentUser?.uid || 'test_user',
+                uploadedAt: new Date().toISOString(),
+                isPublic: false
+            };
+            
+            try {
+                await setDoc(doc(db, 'tracks', testTrackId), testTrack);
+                log(`✅ Created test track: ${testTrackId}`, 'success', 'issueLog');
+                window.lastTestTrackId = testTrackId;
+                
+                // Reload tracks
+                await loadAllTracks();
+            } catch (error) {
+                log(`❌ Failed to create test track: ${error.message}`, 'error', 'issueLog');
+            }
+        };
+
+        window.addToSpecificPlaylist = async function() {
+            if (!window.lastTestTrackId) {
+                log('❌ No test track created yet', 'error', 'issueLog');
+                return;
+            }
+            
+            // Get first playlist
+            const targetPlaylist = window.allPlaylists[0];
+            if (!targetPlaylist) {
+                log('❌ No playlists available', 'error', 'issueLog');
+                return;
+            }
+            
+            log(`Adding track ${window.lastTestTrackId} to playlist "${targetPlaylist.name}"...`, 'info', 'issueLog');
+            
+            try {
+                // Get current tracks
+                const currentTracks = targetPlaylist.tracks || [];
+                
+                // Add new track
+                if (!currentTracks.includes(window.lastTestTrackId)) {
+                    currentTracks.push(window.lastTestTrackId);
+                    
+                    // Update playlist
+                    await updateDoc(doc(db, 'playlists', targetPlaylist.playlistId), {
+                        tracks: currentTracks,
+                        trackCount: currentTracks.length,
+                        updatedAt: new Date().toISOString()
+                    });
+                    
+                    log(`✅ Added track to "${targetPlaylist.name}"`, 'success', 'issueLog');
+                } else {
+                    log(`⚠️ Track already in "${targetPlaylist.name}"`, 'warning', 'issueLog');
+                }
+                
+                // Reload playlists
+                await loadAllPlaylists();
+            } catch (error) {
+                log(`❌ Failed to add track: ${error.message}`, 'error', 'issueLog');
+            }
+        };
+
+        window.checkAllPlaylists = async function() {
+            if (!window.lastTestTrackId) {
+                log('❌ No test track to check', 'error', 'issueLog');
+                return;
+            }
+            
+            log(`Checking all playlists for track ${window.lastTestTrackId}...`, 'info', 'issueLog');
+            
+            // Reload latest data
+            await loadAllPlaylists();
+            
+            let foundIn = [];
+            window.allPlaylists.forEach(playlist => {
+                if (playlist.tracks && playlist.tracks.includes(window.lastTestTrackId)) {
+                    foundIn.push(playlist.name);
+                    log(`🔍 Found in: "${playlist.name}"`, 'info', 'issueLog');
+                }
+            });
+            
+            if (foundIn.length === 0) {
+                log('✅ Track not found in any playlist', 'success', 'issueLog');
+            } else if (foundIn.length === 1) {
+                log(`✅ Track found in exactly one playlist: ${foundIn[0]}`, 'success', 'issueLog');
+            } else {
+                log(`❌ ISSUE DETECTED: Track found in ${foundIn.length} playlists: ${foundIn.join(', ')}`, 'error', 'issueLog');
+            }
+        };
+
+        // 4. Debug functions
+        window.checkGlobalVariables = function() {
+            log('=== Global Variables Check ===', 'info', 'debugLog');
+            log(`window.selectedPlaylistId: ${window.selectedPlaylistId || 'undefined'}`, 'info', 'debugLog');
+            log(`window.selectedTrackIdForPlaylist: ${window.selectedTrackIdForPlaylist || 'undefined'}`, 'info', 'debugLog');
+            log(`window.selectedPlaylistForAdding: ${window.selectedPlaylistForAdding || 'undefined'}`, 'info', 'debugLog');
+            log(`Total tracks loaded: ${window.allTracks.length}`, 'info', 'debugLog');
+            log(`Total playlists loaded: ${window.allPlaylists.length}`, 'info', 'debugLog');
+        };
+
+        window.checkFilterLogic = function() {
+            log('=== Testing Filter Logic ===', 'info', 'debugLog');
+            
+            // Simulate the filter logic from index.html
+            window.allPlaylists.forEach(playlist => {
+                log(`\nTesting playlist: "${playlist.name}"`, 'info', 'debugLog');
+                
+                if (playlist.tracks && playlist.tracks.length > 0) {
+                    // Simulate filter
+                    const filteredTracks = window.allTracks.filter(track => 
+                        playlist.tracks.includes(track.trackId)
+                    );
+                    
+                    log(`  Playlist has ${playlist.tracks.length} track IDs`, 'info', 'debugLog');
+                    log(`  Filter matched ${filteredTracks.length} tracks`, 'info', 'debugLog');
+                    
+                    if (playlist.tracks.length !== filteredTracks.length) {
+                        log(`  ⚠️ Mismatch detected!`, 'warning', 'debugLog');
+                        
+                        // Find missing tracks
+                        const missingTracks = playlist.tracks.filter(trackId => 
+                            !window.allTracks.find(t => t.trackId === trackId)
+                        );
+                        
+                        if (missingTracks.length > 0) {
+                            log(`  Missing track IDs: ${missingTracks.join(', ')}`, 'error', 'debugLog');
+                        }
+                    }
+                }
+            });
+        };
+
+        window.exportDebugData = function() {
+            const debugData = {
+                timestamp: new Date().toISOString(),
+                user: window.currentUser ? {
+                    email: window.currentUser.email,
+                    uid: window.currentUser.uid
+                } : null,
+                tracks: window.allTracks,
+                playlists: window.allPlaylists,
+                globalVars: {
+                    selectedPlaylistId: window.selectedPlaylistId,
+                    selectedTrackIdForPlaylist: window.selectedTrackIdForPlaylist,
+                    selectedPlaylistForAdding: window.selectedPlaylistForAdding
+                }
+            };
+            
+            const json = JSON.stringify(debugData, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `playlist_debug_${Date.now()}.json`;
+            a.click();
+            
+            log('✅ Debug data exported', 'success', 'debugLog');
+        };
+
+        // Initialize auth listener
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.currentUser = user;
+                log(`🔄 Auth state changed: ${user.email}`, 'info', 'authLog');
+            } else {
+                window.currentUser = null;
+                log('🔄 Auth state changed: signed out', 'info', 'authLog');
+            }
+        });
+
+        // Auto-load data on page load
+        window.addEventListener('load', () => {
+            log('Test page loaded and ready', 'success', 'authLog');
+        });
+    </script>
+</body>
+</html>

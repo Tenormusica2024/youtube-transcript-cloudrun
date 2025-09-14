@@ -1,0 +1,79 @@
+=== AI FM - Menu Button Visibility Fix Report ===
+Date: Sat Aug 24 22:53:45     2025
+Deployment: podcast-app-00016-6rb
+
+🚨 ISSUE IDENTIFIED AND FIXED:
+
+❌ Problem:
+- Menu buttons (⋯) not appearing for logged-in users
+- Episode cards rendered before authentication state was established
+- currentUser variable available but episodes already rendered without menu buttons
+
+✅ Root Cause:
+- updateAuthUI() function was not re-rendering episodes after login/logout
+- Menu button visibility depends on currentUser state at render time
+- Initial episode load happened before Firebase auth state was determined
+
+🔧 FIXES IMPLEMENTED:
+
+1. Enhanced updateAuthUI() Function:
+   - Added loadEpisodes() call after login state change
+   - Episodes now re-render when user logs in/out
+   - Menu buttons appear/disappear based on auth state
+
+2. Improved Menu Button CSS:
+   - Increased border opacity (0.15 → 0.25)
+   - Changed color from muted to text (better visibility)
+   - Increased base opacity (0.8 → 0.9)
+   - Added subtle box-shadow for better definition
+
+📋 TECHNICAL CHANGES:
+
+JavaScript (templates/index.html):
+```javascript
+// In updateAuthUI() function - AFTER login:
+// Re-render episodes to show menu buttons
+loadEpisodes();
+
+// In updateAuthUI() function - AFTER logout:
+// Re-render episodes to hide menu buttons  
+loadEpisodes();
+```
+
+CSS (static/css/style.css):
+```css
+.menu-button {
+    border: 1px solid rgba(159, 247, 234, 0.25); /* was 0.15 */
+    color: var(--text); /* was var(--muted) */
+    opacity: 0.9; /* was 0.8 */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* added */
+}
+```
+
+🎯 EXPECTED BEHAVIOR NOW:
+1. User visits page → No menu buttons (not logged in)
+2. User logs in → Episodes re-render with menu buttons visible
+3. User logs out → Episodes re-render with menu buttons hidden
+4. Menu buttons are more visible with improved contrast
+
+🧪 DEPLOYMENT STATUS:
+Service: podcast-app
+Region: us-central1  
+URL: https://podcast-app-ycqe3vmjva-uc.a.run.app
+Revision: podcast-app-00016-6rb
+Status: ACTIVE ✅
+
+✅ VERIFICATION STEPS FOR USER:
+1. Visit the app (should see no menu buttons)
+2. Log in with your account
+3. Episodes should reload with ⋯ buttons in top-right corners
+4. Click ⋯ button to see dropdown menu
+5. Menu should contain DELETE TRACK (if your track) and ADD TO PLAYLIST
+
+🔍 DEBUGGING INFO:
+- Menu buttons only appear for authenticated users
+- Delete option only shows for track owners
+- Playlist option shows for all authenticated users
+- Menu closes when clicking outside
+
+=== MENU BUTTON VISIBILITY - ISSUE RESOLVED ===
