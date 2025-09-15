@@ -1268,6 +1268,23 @@
             try {
                 console.log('INIT: Starting app initialization...');
                 
+                // 🚨 CRITICAL: Show loading state for login buttons
+                const loginBtn = document.getElementById('loginBtn');
+                const registerBtn = document.getElementById('registerBtn');
+                
+                if (loginBtn) {
+                    loginBtn.disabled = true;
+                    loginBtn.textContent = '初期化中...';
+                    loginBtn.style.opacity = '0.6';
+                    console.log('🔄 Login button disabled during Firebase loading');
+                }
+                if (registerBtn) {
+                    registerBtn.disabled = true;
+                    registerBtn.textContent = '初期化中...';
+                    registerBtn.style.opacity = '0.6';
+                    console.log('🔄 Register button disabled during Firebase loading');
+                }
+                
                 // Dynamic import to avoid caching issues
                 const cacheBuster = Date.now() + Math.random().toString(36).substr(2, 9);
                 console.log('INIT: Loading firebase modules...');
@@ -1283,11 +1300,50 @@
                 console.log('INIT: firebaseAuth =', typeof firebaseAuth);
                 console.log('INIT: debugHelper =', typeof debugHelper);
                 
+                // 🔥 IMMEDIATE FIX: Re-enable login buttons with proper event handlers
+                if (loginBtn) {
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'ログイン';
+                    loginBtn.style.opacity = '1';
+                    // Ensure event handler is properly attached
+                    loginBtn.onclick = (e) => {
+                        e.preventDefault();
+                        handleLogin(e);
+                    };
+                    console.log('✅ Login button re-enabled with event handler');
+                }
+                if (registerBtn) {
+                    registerBtn.disabled = false;
+                    registerBtn.textContent = '新規登録';
+                    registerBtn.style.opacity = '1';
+                    // Ensure event handler is properly attached
+                    registerBtn.onclick = (e) => {
+                        e.preventDefault();
+                        handleRegister(e);
+                    };
+                    console.log('✅ Register button re-enabled with event handler');
+                }
+                
                 // Now initialize the rest of the app
                 await initializeAppComponents();
                 
             } catch (error) {
                 console.error('INIT ERROR: Failed to load Firebase modules:', error);
+                
+                // 🚨 ERROR STATE: Show error on login buttons
+                const loginBtn = document.getElementById('loginBtn');
+                const registerBtn = document.getElementById('registerBtn');
+                
+                if (loginBtn) {
+                    loginBtn.disabled = true;
+                    loginBtn.textContent = 'Error - Refresh Page';
+                    loginBtn.style.background = 'var(--danger)';
+                }
+                if (registerBtn) {
+                    registerBtn.disabled = true;
+                    registerBtn.textContent = 'Error - Refresh Page';
+                    registerBtn.style.background = 'var(--danger)';
+                }
             }
         }
         
@@ -1422,15 +1478,30 @@
 
         // Setup all event listeners
         function setupEventListeners() {
-            // Authentication
-            document.getElementById('loginBtn').addEventListener('click', (e) => {
-                // Login button clicked
-                handleLogin(e);
-            });
-            document.getElementById('registerBtn').addEventListener('click', (e) => {
-                // Register button clicked
-                handleRegister(e);
-            });
+            // Authentication - Only set up if not already set by initializeApp
+            const loginBtn = document.getElementById('loginBtn');
+            const registerBtn = document.getElementById('registerBtn');
+            
+            if (loginBtn && !loginBtn.onclick) {
+                loginBtn.addEventListener('click', (e) => {
+                    // Login button clicked
+                    handleLogin(e);
+                });
+                console.log('🔧 Login button event listener added via setupEventListeners');
+            } else if (loginBtn && loginBtn.onclick) {
+                console.log('🔧 Login button already has onclick handler from initializeApp');
+            }
+            
+            if (registerBtn && !registerBtn.onclick) {
+                registerBtn.addEventListener('click', (e) => {
+                    // Register button clicked
+                    handleRegister(e);
+                });
+                console.log('🔧 Register button event listener added via setupEventListeners');
+            } else if (registerBtn && registerBtn.onclick) {
+                console.log('🔧 Register button already has onclick handler from initializeApp');
+            }
+            
             document.getElementById('logoutBtn').addEventListener('click', (e) => {
                 // Logout button clicked
                 handleLogout(e);
@@ -2375,7 +2446,8 @@
 
         //  
         async function unsubscribePodcast(subscriptionId) {
-            if (!confirm('')) return;
+            const confirmed = await showCustomConfirmDialog('ポッドキャストの購読を解除しますか？');
+            if (!confirmed) return;
 
             try {
                 const result = await apiClient.request(`/api/podcasts/subscriptions/${subscriptionId}`, {
@@ -3378,7 +3450,7 @@
                 });
 
                 showProgress('', 100);
-                showMessage('', 'success', 'upload');
+                showMessage('AUDIOファイルのアップロードが完了しました！', 'success', 'upload');
                 
                 // console.log(' Upload completed, reloading episodes...');
                 // console.log(' Current user at upload completion:', currentUser?.email);
@@ -4063,7 +4135,7 @@
                                 const hasAudioUrl = episode.audioUrl || episode.audio_url;
                                 // For music tracks, check if they have both uploaderUid and audioUrl
                                 const isBrokenTrack = isPodcastEpisode ? !hasAudioUrl : (!episode.uploaderUid || !episode.audioUrl);
-                                return isBrokenTrack ? `confirmDeleteOrphanedTrack('${episode.trackId}', '${escapedTitle}')` : `removeFromLibrary('${episode.trackId}', '${escapedTitle}', ${isPodcastEpisode})`;
+                                return isBrokenTrack ? `confirmDeleteOrphanedTrack('${episode.trackId}', '${escapedTitle}')` : `console.log('🔥 UI DELETE BUTTON CLICKED:', { trackId: '${episode.trackId}', title: '${escapedTitle}', isPodcastEpisode: ${isPodcastEpisode}, timestamp: new Date().toISOString() }); removeFromLibrary('${episode.trackId}', '${escapedTitle}', ${isPodcastEpisode})`;
                             })()}">
                                 <span class="menu-text">${(episode.uploaderUid && episode.uploaderUid === currentUser.uid) ? 'トラックを削除' : (() => {
                                     // Check if this is a podcast episode
@@ -4844,6 +4916,13 @@
 
         // Custom confirmation dialog to replace browser confirm() - Styled to match existing modals
         function showCustomConfirmDialog(message) {
+            console.log('🔔 SHOW CUSTOM CONFIRM DIALOG CALLED:', {
+                message: message.substring(0, 100) + '...',
+                timestamp: new Date().toISOString(),
+                user: currentUser?.uid,
+                userEmail: currentUser?.email
+            });
+            
             return new Promise((resolve) => {
                 // Create modal overlay using existing system styles
                 const overlay = document.createElement('div');
@@ -5191,6 +5270,13 @@
             } = options;
 
             pendingConfirmation = { onConfirm, onCancel };
+            console.log('🔧 PENDING CONFIRMATION SET:', {
+                pendingConfirmation: pendingConfirmation,
+                onConfirm: onConfirm ? 'FUNCTION_EXISTS' : 'NULL',
+                onConfirmType: typeof onConfirm,
+                onCancel: onCancel ? 'FUNCTION_EXISTS' : 'NULL',
+                timestamp: new Date().toISOString()
+            });
 
             // Set modal content
             document.getElementById('confirmTitle').textContent = title;
@@ -5224,22 +5310,61 @@
         }
 
         window.confirmAction = function() {
+            console.log('🔥 CONFIRM ACTION BUTTON CLICKED:', {
+                timestamp: new Date().toISOString(),
+                pendingConfirmation: pendingConfirmation ? 'EXISTS' : 'NULL',
+                pendingConfirmationOnConfirm: pendingConfirmation && pendingConfirmation.onConfirm ? 'EXISTS' : 'NULL',
+                user: currentUser?.uid,
+                userEmail: currentUser?.email
+            });
+            
             const skipCheckbox = document.getElementById('confirmSkipCheckbox');
             if (skipCheckbox.checked && skipCheckbox.dataset.skipKey) {
                 confirmationPreferences[skipCheckbox.dataset.skipKey] = true;
                 saveConfirmationPreferences();
+                console.log('🔥 Skip preference saved:', skipCheckbox.dataset.skipKey);
             }
 
+            // 🔧 FIX: Save callback BEFORE closing modal to prevent clearing it
+            const savedCallback = pendingConfirmation?.onConfirm;
+            console.log('💾 SAVED CALLBACK BEFORE CLOSING MODAL:', {
+                savedCallback: savedCallback ? 'FUNCTION_EXISTS' : 'NULL',
+                savedCallbackType: typeof savedCallback
+            });
+
             closeConfirmationModal();
-            if (pendingConfirmation && pendingConfirmation.onConfirm) {
-                pendingConfirmation.onConfirm();
+            console.log('🔥 Confirmation modal closed');
+            
+            if (savedCallback && typeof savedCallback === 'function') {
+                console.log('🔥 Executing saved onConfirm callback');
+                try {
+                    savedCallback();
+                    console.log('✅ onConfirm callback executed successfully');
+                } catch (error) {
+                    console.error('🚨 Error executing onConfirm callback:', error);
+                }
+            } else {
+                console.log('🔥 ERROR: No valid saved callback found');
+                console.log('🔍 Debug - savedCallback:', savedCallback);
             }
         }
 
         window.cancelAction = function() {
+            console.log('🔥 CANCEL ACTION BUTTON CLICKED:', {
+                timestamp: new Date().toISOString(),
+                pendingConfirmation: pendingConfirmation ? 'EXISTS' : 'NULL',
+                user: currentUser?.uid,
+                userEmail: currentUser?.email
+            });
+            
             closeConfirmationModal();
+            console.log('🔥 Confirmation modal closed (cancel)');
+            
             if (pendingConfirmation && pendingConfirmation.onCancel) {
+                console.log('🔥 Executing pending confirmation onCancel callback');
                 pendingConfirmation.onCancel();
+            } else {
+                console.log('🔥 No cancel callback found');
             }
         }
 
@@ -5249,20 +5374,32 @@
         }
 
         async function confirmDeleteTrack(trackId, title) {
+            console.log('🔥🔥🔥 CONFIRM DELETE TRACK FUNCTION CALLED 🔥🔥🔥');
+            console.log('🔥 confirmDeleteTrack v5.0.0 ENHANCED DEBUG called:', { 
+                trackId, 
+                title, 
+                user: currentUser?.uid,
+                userEmail: currentUser?.email,
+                timestamp: new Date().toISOString(),
+                confirmationPreferences: confirmationPreferences
+            });
+
             if (!currentUser) {
+                console.log('🚨 ERROR: No current user - showing auth error');
                 showMessage('', 'error');
                 return;
             }
 
-            // console.log('Delete track request:', { trackId, title, user: currentUser.uid });
+            console.log('✅ User authenticated, proceeding with delete confirmation');
 
             // Check if we should skip confirmation
             if (confirmationPreferences.skipDeleteConfirmation) {
-                // console.log(' Skipping delete confirmation (user preference)');
+                console.log('⚡ SKIP CONFIRMATION: User preference set to skip confirmation');
                 await deleteTrack(trackId);
                 return;
             }
 
+            console.log('📋 SHOWING CONFIRMATION MODAL for trackId:', trackId);
             // Show custom confirmation modal
             showConfirmationModal({
                 title: 'トラックを削除',
@@ -5273,36 +5410,44 @@
                 skipOption: true,
                 skipKey: 'skipDeleteConfirmation',
                 onConfirm: async () => {
-                    // console.log('User confirmed deletion for trackId:', trackId);
+                    console.log('✅ USER CONFIRMED DELETION for trackId:', trackId);
                     await deleteTrack(trackId);
                 },
                 onCancel: () => {
-                    // console.log('User cancelled deletion for trackId:', trackId);
+                    console.log('❌ USER CANCELLED DELETION for trackId:', trackId);
                 }
             });
         }
 
         async function deleteTrack(trackId) {
             try {
-                // console.log('Starting track deletion:', trackId);
+                console.log('🚀🚀🚀 DELETE TRACK FUNCTION STARTED 🚀🚀🚀');
+                console.log('🚀 deleteTrack v5.0.0 ENHANCED DEBUG called:', { 
+                    trackId, 
+                    user: currentUser?.uid,
+                    userEmail: currentUser?.email,
+                    timestamp: new Date().toISOString() 
+                });
+
+                console.log('⏳ Setting loading state and showing warning message');
                 setLoadingState('delete', true);
                 showMessage('...', 'warning');
 
-                // console.log('Calling DELETE API for trackId:', trackId);
+                console.log('🌐 CALLING DELETE API for trackId:', trackId);
                 const response = await apiClient.request(`/api/tracks/${trackId}`, {
                     method: 'DELETE'
                 });
 
-                // console.log('Delete API response:', response);
+                console.log('✅ DELETE API RESPONSE RECEIVED:', response);
                 showMessage('', 'success');
                 
                 // Immediately remove from episodes array for faster UI response
                 const beforeCount = episodes.length;
                 episodes = episodes.filter(ep => ep.trackId !== trackId);
-                // console.log(` Removed from episodes array: ${beforeCount} -> ${episodes.length}`);
+                console.log(`📊 Removed from episodes array: ${beforeCount} -> ${episodes.length}`);
                 
                 // Force clear cache and reload episodes to reflect changes
-                // console.log('Reloading episodes after deletion');
+                console.log('🔄 FORCE CLEARING CACHE and reloading episodes');
                 forceClearEpisodesCache();
                 await loadEpisodes();
                 
@@ -5324,15 +5469,16 @@
                 // Close player if deleted track was playing
                 const currentPlayingId = getCurrentPlayingTrackId();
                 if (currentPlayingId === trackId) {
-                    // console.log('Closing player for deleted track');
+                    console.log('🎵 CLOSING PLAYER for deleted track:', trackId);
                     closePlayer();
                 }
                 
-                // console.log('Track deletion completed successfully');
+                console.log('✅ TRACK DELETION COMPLETED SUCCESSFULLY for trackId:', trackId);
                 
             } catch (error) {
-                console.error('Delete error:', error);
-                console.error('Error details:', {
+                console.error('🚨🚨🚨 DELETE ERROR OCCURRED 🚨🚨🚨');
+                console.error('🚨 Delete error:', error);
+                console.error('🚨 Error details:', {
                     message: error.message,
                     stack: error.stack,
                     trackId: trackId,
@@ -5454,17 +5600,34 @@
 
         // Episode menu functions
         function toggleEpisodeMenu(trackId) {
+            console.log('🎯 TOGGLE EPISODE MENU CLICKED:', { 
+                trackId, 
+                timestamp: new Date().toISOString(),
+                user: currentUser?.uid,
+                userEmail: currentUser?.email 
+            });
+            
             // Close all other menus
             document.querySelectorAll('.menu-dropdown.active').forEach(menu => {
                 if (menu.id !== `menu-${trackId}`) {
                     menu.classList.remove('active');
+                    console.log('🎯 Closed other menu:', menu.id);
                 }
             });
             
             // Toggle the clicked menu
             const menu = document.getElementById(`menu-${trackId}`);
             if (menu) {
+                const wasActive = menu.classList.contains('active');
                 menu.classList.toggle('active');
+                console.log('🎯 Menu toggle result:', { 
+                    menuId: `menu-${trackId}`, 
+                    wasActive, 
+                    nowActive: menu.classList.contains('active'),
+                    menuElement: menu ? 'FOUND' : 'NOT_FOUND'
+                });
+            } else {
+                console.log('🎯 ERROR: Menu element not found:', `menu-${trackId}`);
             }
         }
 
@@ -5904,7 +6067,8 @@
         window.deletePodcastPlaylist = async function(playlistId, playlistName) {
             console.log('🎙️ Deleting podcast playlist:', playlistName);
             
-            if (!confirm(`プレイリスト「${playlistName}」を削除しますか？\n\nこの操作は元に戻せません。`)) {
+            const confirmed = await showCustomConfirmDialog(`プレイリスト「${playlistName}」を削除しますか？\n\nこの操作は元に戻せません。`);
+            if (!confirmed) {
                 console.log('🎙️ Deletion cancelled by user');
                 return;
             }
@@ -6008,9 +6172,152 @@
             }
         }
 
-        // Load Podcast Playlist Content
-        window.loadPodcastPlaylistContent = async function(podcastPlaylistId) {
-            console.log('🎙️ Loading podcast playlist content:', podcastPlaylistId);
+        // 🚀 PODCAST CONTENT CACHE - Global cache to prevent reloading already-loaded content
+        window.podcastPlaylistCache = window.podcastPlaylistCache || {};
+        
+        // Helper function to render cached podcast episodes
+        window.renderCachedPodcastEpisodes = async function(cachedEpisodes, playlistId) {
+            console.log('⚡ Rendering cached podcast episodes:', cachedEpisodes.length);
+            
+            const container = document.getElementById('episodesList') || document.getElementById('episodesContainer') || document.getElementById('libraryResults');
+            const loadingIndicator = document.getElementById('loadingEpisodes');
+            const noEpisodes = document.getElementById('noEpisodes');
+            
+            // Hide loading indicator immediately
+            if (loadingIndicator) loadingIndicator.style.display = 'none';
+            
+            if (cachedEpisodes.length === 0) {
+                if (noEpisodes) {
+                    noEpisodes.style.display = 'block';
+                    noEpisodes.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            <div style="font-size: 3em; margin-bottom: 16px;">🎙️</div>
+                            <h3 style="margin: 0 0 12px 0; color: var(--text);">このポッドキャストプレイリストは空です</h3>
+                            <p style="margin: 0;">ポッドキャストを検索してエピソードを追加してください。</p>
+                        </div>
+                    `;
+                }
+                return;
+            }
+            
+            // Use cached HTML if available, otherwise regenerate
+            const cachedData = window.podcastPlaylistCache[playlistId];
+            if (cachedData && cachedData.html) {
+                console.log('⚡ Using cached HTML for instant display');
+                container.innerHTML = cachedData.html;
+            } else {
+                console.log('⚡ Regenerating HTML from cached episode data');
+                // Regenerate HTML if not cached (fallback)
+                let html = '<div style="color: var(--text);">';
+                cachedEpisodes.forEach((episode, index) => {
+                    const episodeId = episode.id || `cached_${index}`;
+                    const displayTitle = episode.title || `エピソード ${index + 1}`;
+                    const displayPodcastName = episode.podcast_name || 'Cached Podcast';
+                    
+                    html += `
+                        <div class="podcast-episode-item episode-item" data-episode-id="${episodeId}">
+                            <h3>${displayTitle}</h3>
+                            <p>${displayPodcastName}</p>
+                            <div class="episode-actions">
+                                <button class="auth-button small play-button" onclick="playEpisode('${episodeId}', '${displayTitle}', '${displayPodcastName}')">
+                                    ▶️ 再生
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            }
+        };
+        
+        // Cache management utilities
+        window.podcastCacheUtils = {
+            // Clear specific playlist cache
+            clearPlaylistCache: function(playlistId) {
+                if (window.podcastPlaylistCache && window.podcastPlaylistCache[playlistId]) {
+                    delete window.podcastPlaylistCache[playlistId];
+                    console.log('🗑️ Cleared cache for playlist:', playlistId);
+                    return true;
+                }
+                return false;
+            },
+            
+            // Clear all podcast caches
+            clearAllCache: function() {
+                const count = Object.keys(window.podcastPlaylistCache || {}).length;
+                window.podcastPlaylistCache = {};
+                console.log(`🗑️ Cleared all podcast caches (${count} playlists)`);
+                showMessage(`キャッシュをクリアしました（${count}プレイリスト）`, 'success');
+                return count;
+            },
+            
+            // Get cache info
+            getCacheInfo: function() {
+                const cache = window.podcastPlaylistCache || {};
+                const playlists = Object.keys(cache);
+                console.log('📊 Cache info:', {
+                    totalPlaylists: playlists.length,
+                    playlists: playlists,
+                    cacheSizes: playlists.map(id => ({
+                        id,
+                        episodes: cache[id].episodes?.length || 0,
+                        cachedAt: cache[id].cachedAt
+                    }))
+                });
+                return cache;
+            },
+            
+            // Force reload a specific playlist (bypass cache)
+            forceReload: function(playlistId) {
+                console.log('🔄 Force reloading playlist:', playlistId);
+                return window.loadPodcastPlaylistContent(playlistId, true);
+            }
+        };
+        
+        // Load Podcast Playlist Content with Enhanced Cache Control
+        window.loadPodcastPlaylistContent = async function(podcastPlaylistId, forceReload = false, forceCacheClear = false) {
+            console.log('🎙️ Loading podcast playlist content:', podcastPlaylistId, { forceReload, forceCacheClear });
+            
+            // 🚨 FORCE CACHE CLEAR: 強力なキャッシュクリア機能
+            if (forceCacheClear) {
+                console.log('🔥 FORCE CACHE CLEAR: 全キャッシュを削除');
+                
+                // 1. プレイリストキャッシュを完全削除
+                if (window.podcastPlaylistCache && window.podcastPlaylistCache[podcastPlaylistId]) {
+                    delete window.podcastPlaylistCache[podcastPlaylistId];
+                    console.log('✅ プレイリストキャッシュ削除完了:', podcastPlaylistId);
+                }
+                
+                // 2. 関連するlocalStorageキャッシュをクリア
+                const cacheKeys = Object.keys(localStorage).filter(key => 
+                    key.includes('podcast') || key.includes('playlist') || key.includes('episode')
+                );
+                cacheKeys.forEach(key => {
+                    localStorage.removeItem(key);
+                    console.log(`🗑️ localStorage削除: ${key}`);
+                });
+                
+                // 3. 強制的にforceReload=trueに設定
+                forceReload = true;
+                
+                showMessage('🔥 キャッシュを強制クリアしました', 'warning');
+            }
+            
+            // ✅ CHECK CACHE FIRST - Avoid unnecessary reloads (forceCacheClearの場合はスキップ)
+            if (!forceReload && !forceCacheClear && window.podcastPlaylistCache[podcastPlaylistId]) {
+                console.log('⚡ Using cached podcast content - no reload needed!');
+                const cachedData = window.podcastPlaylistCache[podcastPlaylistId];
+                
+                // Update UI with cached content
+                await renderCachedPodcastEpisodes(cachedData.episodes, cachedData.playlistId);
+                
+                // Show cache usage info
+                showMessage('⚡ プレイリストコンテンツをキャッシュから読み込みました（再読み込みなし）', 'success');
+                return;
+            }
+            
+            console.log(forceReload ? '🔄 Force reloading podcast content...' : '🆕 Loading fresh podcast content...');
             
             // Try different possible container IDs
             const container = document.getElementById('episodesList') || document.getElementById('episodesContainer') || document.getElementById('libraryResults');
@@ -6054,11 +6361,18 @@
                 // Extract the actual playlist ID (remove 'podcast_' prefix)
                 const actualPlaylistId = podcastPlaylistId.replace('podcast_', '');
                 
-                // 🔥 API FIX: Use correct endpoint for podcast playlists
-                const response = await fetch(`/api/podcast-playlists/${actualPlaylistId}`, {
+                // 🚨 CACHE BREAKER: Add timestamp to prevent browser caching
+                const cacheBreaker = forceCacheClear || forceReload ? `?_cache_clear=${Date.now()}` : '';
+                
+                // 🔥 API FIX: Use correct endpoint for podcast playlists with cache breaker
+                const response = await fetch(`/api/podcast-playlists/${actualPlaylistId}${cacheBreaker}`, {
                     headers: {
                         'Authorization': `Bearer ${await currentUser.getIdToken()}`,
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        // 🚨 Prevent browser caching
+                        'Cache-Control': forceCacheClear ? 'no-cache, no-store, must-revalidate' : 'default',
+                        'Pragma': forceCacheClear ? 'no-cache' : 'default',
+                        'Expires': forceCacheClear ? '0' : 'default'
                     }
                 });
                 
@@ -6132,12 +6446,12 @@
                                     console.log(`⚡ Fast-fetched episode details in <3s:`, episodeData.title);
                                     return episodeData;
                                 } else {
-                                    console.warn(`⚠️ No episode details found for ${episodeId}, using fast fallback`);
-                                    return createFallbackEpisodeData(episodeId, episode.added_at);
+                                    console.warn(`⚠️ No episode details found for ${episodeId}, using enhanced fallback`);
+                                    return await createFallbackEpisodeData(episodeId, episode.added_at);
                                 }
                             } else {
-                                console.warn(`⚠️ Search API failed for episode ${episodeId} (${searchResponse.status}), using fast fallback`);
-                                return createFallbackEpisodeData(episodeId, episode.added_at);
+                                console.warn(`⚠️ Search API failed for episode ${episodeId} (${searchResponse.status}), using enhanced fallback`);
+                                return await createFallbackEpisodeData(episodeId, episode.added_at);
                             }
                         } catch (error) {
                             if (error.name === 'AbortError') {
@@ -6174,16 +6488,21 @@
                                 console.warn(`⚠️ Fallback search also failed for ${episodeId}:`, fallbackError.message);
                             }
                             
-                            return createFallbackEpisodeData(episodeId, episode.added_at);
+                            return await createFallbackEpisodeData(episodeId, episode.added_at);
                         }
                     } else if (episode.id && episode.title) {
-                        // If episode already has full details
+                        // Check if title is just a numeric ID (like -4858069224831239363)
+                        if (/^-?\d+$/.test(episode.title.toString().trim())) {
+                            console.log(`🔧 Episode has numeric title ID: ${episode.title}, processing with fallback`);
+                            return await createFallbackEpisodeData(episode.id, episode.added_at);
+                        }
+                        // If episode already has full, meaningful details
                         console.log(`⚡ Episode already has full details: ${episode.title}`);
                         return episode;
                     } else {
                         // Fallback for unexpected data structure
-                        console.log(`⚡ Using fast fallback for episode: ${episodeId}`);
-                        return createFallbackEpisodeData(episodeId, episode.added_at);
+                        console.log(`⚡ Using enhanced fallback for episode: ${episodeId}`);
+                        return await createFallbackEpisodeData(episodeId, episode.added_at);
                     }
                 }
                 
@@ -6219,9 +6538,9 @@
                             enrichedEpisodes.push(processedEpisode);
                         } catch (singleEpisodeError) {
                             console.error(`❌ Failed to process episode ${i + 1}:`, singleEpisodeError);
-                            // Add fallback episode data
+                            // Add enhanced fallback episode data
                             const episodeId = episodes[i].id || episodes[i];
-                            enrichedEpisodes.push(createFallbackEpisodeData(episodeId, episodes[i].added_at));
+                            enrichedEpisodes.push(await createFallbackEpisodeData(episodeId, episodes[i].added_at));
                         }
                         processedCount = i + 1;
                     }
@@ -6237,28 +6556,88 @@
                     progressElement.textContent = `エピソード一覧を表示中... (${enrichedEpisodes.length}件完了)`;
                 }
                 
-                // Helper function to create fallback episode data
-                function createFallbackEpisodeData(episodeId, addedAt) {
-                    const parts = episodeId.split('_');
-                    let podcastName = 'Unknown Podcast';
-                    let episodeTitle = `Episode ${parts[parts.length - 1]}`;
+                // Helper function to create enhanced episode data (try to fetch real data first)
+                async function createFallbackEpisodeData(episodeId, addedAt) {
+                    console.log(`🔍 Creating enhanced episode data for: ${episodeId}`);
                     
-                    if (parts.length >= 2) {
-                        // Extract podcast name from ID
-                        podcastName = parts.slice(0, -1).join(' ')
-                            .replace(/_/g, ' ')
-                            .split(' ')
-                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ');
-                        episodeTitle = `Episode (ID: ${parts[parts.length - 1]})`;
+                    // Try to fetch real episode data first
+                    try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5-second timeout for fallback
+                        
+                        const searchResponse = await fetch(`/api/podcasts/search?episode_id=${episodeId}`, {
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            signal: controller.signal
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (searchResponse.ok) {
+                            const searchData = await searchResponse.json();
+                            if (searchData.episodes && searchData.episodes.length > 0) {
+                                const foundEpisode = searchData.episodes.find(ep => ep.id === episodeId) || searchData.episodes[0];
+                                const realEpisodeData = { 
+                                    ...foundEpisode,
+                                    id: episodeId,
+                                    added_at: addedAt || new Date().toISOString()
+                                };
+                                console.log(`✅ Fallback found real episode data: ${realEpisodeData.title}`);
+                                return realEpisodeData;
+                            }
+                        }
+                    } catch (error) {
+                        console.warn(`⚠️ Fallback search failed for ${episodeId}:`, error.message);
                     }
+                    
+                    // If real data fetch fails, create intelligent placeholder
+                    let podcastName = 'Unknown Podcast';
+                    let episodeTitle = 'エピソード';
+                    
+                    // Check if episodeId is a pure numeric ID (like -4858069224831239363)
+                    if (/^-?\d+$/.test(episodeId.toString())) {
+                        console.log(`🔧 Handling pure numeric episode ID: ${episodeId}`);
+                        // For pure numeric IDs, create a clean generic title without showing the ID
+                        episodeTitle = `エピソード`;
+                        podcastName = 'Podcast';
+                    } else if (episodeId.includes('_')) {
+                        // Handle underscore-separated IDs
+                        const parts = episodeId.split('_');
+                        
+                        if (parts.length >= 2) {
+                            // Extract podcast name from ID with better formatting
+                            podcastName = parts.slice(0, -1).join(' ')
+                                .replace(/_/g, ' ')
+                                .replace(/([a-z])([A-Z])/g, '$1 $2') // Handle camelCase
+                                .split(' ')
+                                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                                .join(' ');
+                            
+                            // Try to create a more meaningful episode title
+                            const episodeNumber = parts[parts.length - 1];
+                            if (/^\d+$/.test(episodeNumber)) {
+                                episodeTitle = `エピソード ${episodeNumber}`;
+                            } else {
+                                episodeTitle = `${episodeNumber.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ')}`;
+                            }
+                        } else {
+                            episodeTitle = `エピソード ${parts[parts.length - 1]}`;
+                        }
+                    } else {
+                        // For other ID formats, create a clean generic title
+                        episodeTitle = `エピソード`;
+                    }
+                    
+                    console.log(`📝 Created placeholder episode data: ${episodeTitle} from ${podcastName}`);
                     
                     return {
                         id: episodeId,
                         title: episodeTitle,
                         podcast_name: podcastName,
                         added_at: addedAt || new Date().toISOString(),
-                        description: 'Episode details are being loaded...'
+                        description: 'エピソードの詳細情報を取得中...',
+                        isPlaceholder: true // Mark as placeholder for potential future re-fetch
                     };
                 }
                 
@@ -6269,6 +6648,7 @@
                 console.log('🔍 Starting HTML generation for enrichedEpisodes:', enrichedEpisodes.length);
                 enrichedEpisodes.forEach((episode, index) => {
                     console.log(`🔍 Processing episode ${index + 1}:`, episode);
+                    console.log(`🔍 Episode title type and value:`, typeof episode.title, episode.title);
                     const episodeId = episode.id;
                     const addedAt = episode.added_at;
                     console.log(`🔍 Episode ID: ${episodeId}, Added At: ${addedAt}`);
@@ -6284,39 +6664,99 @@
                         }
                     }
                     
-                    // Use episode data or fallback to extracted info
-                    const displayTitle = episode.title || `エピソード (${episodeId?.split('_').pop() || index + 1})`;
+                    // Define displayPodcastName first
                     const displayPodcastName = podcastName || episode.podcast_name || 'Unknown Podcast';
+                    
+                    // Use episode data or create meaningful fallback title
+                    let displayTitle = episode.title;
+                    
+                    // 🚨 CRITICAL: Check if title is numeric ID or fallback format - use original episode title if meaningful
+                    if (!displayTitle || /^-?\d+$/.test(displayTitle.toString().trim()) || displayTitle.toString().includes('-4858069224831239363')) {
+                        console.log(`🔧 Episode title appears to be numeric ID: ${displayTitle}, trying to get real title from API`);
+                        
+                        // Try to get the real episode title from searchEpisodeByName API
+                        if (episode.id && displayPodcastName && displayPodcastName !== 'Unknown Podcast') {
+                            try {
+                                console.log(`🔍 Attempting to search for real title for episode: ${episode.id}`);
+                                const searchResults = await searchEpisodeByName(displayPodcastName, 1);
+                                console.log(`🔍 Search results for ${displayPodcastName}:`, searchResults);
+                                
+                                // Find matching episode by ID or similar characteristics
+                                if (searchResults && searchResults.episodes && searchResults.episodes.length > 0) {
+                                    // Try to find exact match by episode ID
+                                    let matchedEpisode = searchResults.episodes.find(ep => ep.id === episode.id);
+                                    
+                                    // If no exact match, use the first result as fallback
+                                    if (!matchedEpisode && searchResults.episodes.length > 0) {
+                                        matchedEpisode = searchResults.episodes[0];
+                                        console.log(`🔄 Using first search result as fallback:`, matchedEpisode.title);
+                                    }
+                                    
+                                    if (matchedEpisode && matchedEpisode.title && !(/^-?\d+$/.test(matchedEpisode.title.toString().trim()))) {
+                                        displayTitle = matchedEpisode.title;
+                                        console.log(`✅ Found real title: ${displayTitle}`);
+                                        
+                                        // Also update description if available
+                                        if (matchedEpisode.description && !episode.description) {
+                                            episode.description = matchedEpisode.description;
+                                        }
+                                        
+                                        // Update other metadata if available
+                                        if (matchedEpisode.duration && !episode.duration) {
+                                            episode.duration = matchedEpisode.duration;
+                                        }
+                                        if (matchedEpisode.uploaderName && !episode.uploaderName) {
+                                            episode.uploaderName = matchedEpisode.uploaderName;
+                                        }
+                                    }
+                                }
+                            } catch (searchError) {
+                                console.warn(`⚠️ Failed to search for real episode title:`, searchError);
+                            }
+                        }
+                        
+                        // If still no meaningful title, create a better fallback (without "エピソード X" format)
+                        if (!displayTitle || /^-?\d+$/.test(displayTitle.toString().trim()) || displayTitle.toString().includes('-4858069224831239363')) {
+                            if (displayPodcastName && displayPodcastName !== 'Unknown Podcast' && displayPodcastName !== 'Podcast') {
+                                displayTitle = `${displayPodcastName} Episode`;
+                            } else {
+                                displayTitle = `Podcast Episode`;
+                            }
+                        }
+                    }
+                    
                     const displayDate = addedAt ? new Date(addedAt).toLocaleDateString('ja-JP') : 
                                       episode.published_date ? new Date(episode.published_date).toLocaleDateString('ja-JP') : '';
                     
+                    // 🎯 SEARCH-STYLE FORMAT: Match the search results display format exactly
+                    // Clean title from any numeric IDs (keep the displayTitle logic above)
+                    const searchStyleTitle = displayTitle.replace(/^-?\d+\s*-?\s*/, '');
+                    
+                    // Format description like search results (first 150 chars)
+                    const searchStyleDescription = episode.description 
+                        ? episode.description.substring(0, 150) + (episode.description.length > 150 ? '...' : '')
+                        : '';
+                    
+                    // Format duration like search results
+                    const durationFormatted = episode.duration 
+                        ? Math.floor(episode.duration / 60) + '分' 
+                        : episode.durationSec 
+                            ? Math.floor(episode.durationSec / 60) + '分'
+                            : 'Unknown';
+                    
+                    // Format meta info exactly like search results: "BY uploaderName | date | duration"
+                    const uploaderName = episode.uploaderName || episode.podcast_name || displayPodcastName || 'Unknown';
+                    const searchStyleMeta = `BY ${uploaderName} | ${displayDate || 'Unknown'} | ${durationFormatted}`;
+
                     html += `
-                        <div class="podcast-episode-item episode-item" data-episode-id="${episodeId || ''}" style="margin-bottom: 16px; padding: 16px; border: 1px solid rgba(159, 247, 234, 0.3); border-radius: 12px; background: rgba(159, 247, 234, 0.05);">
-                            <div class="episode-header" style="display: flex; gap: 12px; align-items: start;">
-                                ${episode.artwork ? `
-                                    <img src="${episode.artwork}" alt="${displayTitle}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">
-                                ` : `
-                                    <div style="width: 80px; height: 80px; background: rgba(159, 247, 234, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 2em;">
-                                        🎙️
-                                    </div>
-                                `}
-                                <div style="flex: 1;">
-                                    <h3 style="margin: 0 0 8px 0; font-size: 1.1em; color: var(--text);">${displayTitle}</h3>
-                                    <p style="margin: 0 0 4px 0; font-size: 0.9em; color: var(--accent-color);">${displayPodcastName}</p>
-                                    <p style="margin: 0; font-size: 0.85em; color: var(--text-muted);">
-                                        ${displayDate}
-                                        ${addedAt ? ' (プレイリストに追加)' : ''}
-                                        ${episode.duration ? ` • ${Math.floor(episode.duration / 60)}分` : ''}
-                                    </p>
-                                </div>
+                        <div class="podcast-episode-item episode-item search-result-item" data-episode-id="${episodeId || ''}" style="border: 1px solid #eee; padding: 15px; border-radius: 8px; cursor: pointer; transition: background-color 0.2s; margin-bottom: 15px;">
+                            <div style="font-weight: bold; margin-bottom: 5px;">${searchStyleTitle}</div>
+                            <div style="color: #666; font-size: 0.9em; margin-bottom: 5px;">${searchStyleDescription}</div>
+                            <div style="color: #888; font-size: 0.8em; margin-bottom: 12px;">
+                                ${searchStyleMeta}
                             </div>
-                            ${episode.description ? `
-                                <p style="margin: 12px 0 0 0; font-size: 0.9em; color: var(--text-muted); line-height: 1.5;">
-                                    ${episode.description.substring(0, 200)}${episode.description.length > 200 ? '...' : ''}
-                                </p>
-                            ` : ''}
-                            <div class="episode-actions" style="margin-top: 12px; display: flex; gap: 8px;">
-                                <button class="auth-button small play-button" onclick="playEpisode('${episodeId}', '${displayTitle.replace(/'/g, "\\'")}', '${displayPodcastName.replace(/'/g, "\\'")}')">
+                            <div class="episode-actions" style="display: flex; gap: 8px;">
+                                <button class="auth-button small play-button" onclick="playEpisode('${episodeId}', '${searchStyleTitle.replace(/'/g, "\\'")}', '${uploaderName.replace(/'/g, "\\'")}')">
                                     ▶️ 再生
                                 </button>
                                 <button class="auth-button small secondary" onclick="removePodcastFromPlaylist('${actualPlaylistId}', '${episodeId}')">
@@ -6330,11 +6770,66 @@
                 
                 console.log('🔍 Final HTML length:', html.length);
                 console.log('🔍 First 500 characters of HTML:', html.substring(0, 500));
-                container.innerHTML = html;
-                console.log('🔍 Container innerHTML after assignment:', container.innerHTML.length);
+                
+                // 🔄 ADD CACHE CLEAR BUTTON: Add a manual cache clear button for users
+                const cacheControlHtml = `
+                    <div class="cache-control-panel" style="background: var(--panel-2); border: 1px solid rgba(159, 247, 234, 0.15); border-radius: 8px; padding: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="color: var(--text); font-size: 0.9em;">
+                            <span style="font-weight: 500;">📋 プレイリスト表示</span>
+                            <span style="color: var(--muted); margin-left: 8px;">表示に問題がある場合はキャッシュをクリアしてください</span>
+                        </div>
+                        <button 
+                            class="auth-button small secondary" 
+                            style="background: linear-gradient(135deg, var(--danger) 0%, #e74c3c 100%); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 0.8em; cursor: pointer;"
+                            onclick="window.loadPodcastPlaylistContent('${podcastPlaylistId}', true, true)"
+                            title="キャッシュをクリアして最新データを強制取得">
+                            🔄 キャッシュクリア
+                        </button>
+                    </div>
+                `;
+                
+                container.innerHTML = cacheControlHtml + html;
+                console.log('🔍 Container innerHTML after assignment with cache control:', container.innerHTML.length);
+                
+                // 🎯 ADD SEARCH-STYLE HOVER EFFECTS: Match search results exactly
+                const playlistResultItems = container.querySelectorAll('.search-result-item');
+                playlistResultItems.forEach(item => {
+                    item.addEventListener('mouseenter', () => {
+                        item.style.backgroundColor = '#f8f9fa';
+                    });
+                    item.addEventListener('mouseleave', () => {
+                        item.style.backgroundColor = 'white';
+                    });
+                });
+                console.log('✅ Added search-style hover effects to playlist items');
+                
+                // 🚀 CACHE THE SUCCESSFULLY LOADED CONTENT
+                console.log('💾 Storing podcast content in cache for future access...');
+                window.podcastPlaylistCache[podcastPlaylistId] = {
+                    episodes: enrichedEpisodes,
+                    playlistId: podcastPlaylistId,
+                    cachedAt: new Date().toISOString(),
+                    html: html // Cache the rendered HTML for instant display
+                };
+                console.log('✅ Cached podcast content for playlist:', podcastPlaylistId, `(${enrichedEpisodes.length} episodes)`);
                 
             } catch (error) {
                 console.error('Failed to load podcast playlist content:', error);
+                
+                // 🚨 AUTO CACHE CLEAR ON ERROR: Automatically clear cache and retry on first error
+                if (!forceCacheClear && !forceReload) {
+                    console.log('🔄 Error occurred, attempting auto cache clear and retry...');
+                    showMessage('エラーが発生しました。キャッシュをクリアして再試行中...', 'warning');
+                    
+                    // Retry with cache clear
+                    try {
+                        await window.loadPodcastPlaylistContent(podcastPlaylistId, true, true);
+                        return; // Success on retry
+                    } catch (retryError) {
+                        console.error('Retry with cache clear also failed:', retryError);
+                    }
+                }
+                
                 if (loadingIndicator) loadingIndicator.style.display = 'none';
                 if (noEpisodes) {
                     noEpisodes.style.display = 'block';
@@ -6342,10 +6837,18 @@
                         <div style="text-align: center; padding: 40px; color: var(--error-color);">
                             <div style="font-size: 2em; margin-bottom: 16px;">⚠️</div>
                             <h3 style="margin: 0 0 12px 0;">読み込みエラー</h3>
-                            <p style="margin: 0;">ポッドキャストプレイリストの読み込みに失敗しました。</p>
+                            <p style="margin: 0 0 12px 0;">ポッドキャストプレイリストの読み込みに失敗しました。</p>
+                            <button 
+                                class="auth-button small" 
+                                onclick="window.loadPodcastPlaylistContent('${podcastPlaylistId}', true, true)"
+                                style="margin-top: 12px;">
+                                🔄 キャッシュクリアして再試行
+                            </button>
                         </div>
                     `;
                 }
+                
+                showMessage('プレイリストの読み込みに失敗しました。キャッシュクリアボタンをお試しください。', 'error');
             }
         }
 
@@ -6403,6 +6906,12 @@
 
                 showMessage('プレイリストから削除しました', 'success');
                 console.log(`✅ Successfully removed episode ${episodeId} from playlist ${playlistId}`);
+
+                // 💾 INVALIDATE CACHE: Remove cached playlist content since it's now outdated
+                if (window.podcastPlaylistCache && window.podcastPlaylistCache[playlistId]) {
+                    delete window.podcastPlaylistCache[playlistId];
+                    console.log('🗑️ Cache invalidated for playlist:', playlistId);
+                }
 
                 // 🚀 FAST METHOD: Remove episode element directly from DOM (no reload)
                 console.log('🔧 DEBUG: Using fast DOM removal method...');
@@ -7184,14 +7693,26 @@
         }
 
         async function removeFromLibrary(trackId, title, isPodcastEpisode = false) {
-            console.log('🚀 removeFromLibrary v3.1.1 called:', { trackId, title, isPodcastEpisode, user: currentUser?.uid });
+            console.log('🚀🚀🚀 REMOVE FROM LIBRARY FUNCTION STARTED 🚀🚀🚀');
+            console.log('🚀 removeFromLibrary v4.0.0 ENHANCED DEBUG called:', { 
+                trackId, 
+                title, 
+                isPodcastEpisode, 
+                user: currentUser?.uid,
+                userEmail: currentUser?.email,
+                timestamp: new Date().toISOString() 
+            });
             console.log('🔍 Current selectedPlaylistId:', window.selectedPlaylistId);
             console.log('🔍 Current URL:', window.location.href);
+            console.log('🔍 Function called from:', (new Error()).stack);
             
             // Close menu
             const menu = document.getElementById(`menu-${trackId}`);
+            console.log('🔍 Menu element found:', menu ? 'YES' : 'NO', menu);
             if (menu) {
+                console.log('🔍 Menu classList before:', Array.from(menu.classList));
                 menu.classList.remove('active');
+                console.log('🔍 Menu classList after:', Array.from(menu.classList));
             }
             
             if (!currentUser) {
@@ -7201,8 +7722,9 @@
             }
             
             // Show confirmation dialog
-            console.log('📋 Showing confirmation dialog for:', title);
-            const confirmed = confirm(`"${title}" をプレイリストから削除しますか？`);
+            console.log('📋 Showing custom confirmation dialog for:', title);
+            const confirmed = await showCustomConfirmDialog(`"${title}" をプレイリストから削除しますか？`);
+            console.log('📋 Custom confirmation result:', confirmed);
             
             if (confirmed) {
                 console.log('✅ User confirmed removal for trackId:', trackId);
@@ -7336,7 +7858,7 @@
                     let errorMessage = '';
                     if (error.message.includes('permanently delete your own tracks')) {
                         // User is trying to remove their own uploaded track - offer permanent deletion
-                        const shouldDelete = confirm(`このトラックはあなたがアップロードした曲です。\n\n"${title}"\n\nライブラリから削除するのではなく、永続的に削除しますか？\n\n【注意】永続的に削除すると元に戻せません。`);
+                        const shouldDelete = await showCustomConfirmDialog(`このトラックはあなたがアップロードした曲です。\n\n"${title}"\n\nライブラリから削除するのではなく、永続的に削除しますか？\n\n【注意】永続的に削除すると元に戻せません。`);
                         
                         if (shouldDelete) {
                             try {
@@ -7690,6 +8212,32 @@
         // Podcasts
         // =================================
 
+        // Search for episodes by podcast name (for getting real episode titles)
+        async function searchEpisodeByName(podcastName, limit = 5) {
+            console.log(`🔍 searchEpisodeByName called with: ${podcastName}, limit: ${limit}`);
+            
+            try {
+                const searchParams = new URLSearchParams();
+                searchParams.append('query', podcastName);
+                searchParams.append('limit', limit.toString());
+                
+                const response = await fetch(`/api/podcasts/search?${searchParams}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Episode search failed: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log(`🔍 searchEpisodeByName API Response:`, data);
+                
+                return data; // Returns object with episodes array and total_count
+                
+            } catch (error) {
+                console.error(`❌ searchEpisodeByName error for "${podcastName}":`, error);
+                return null;
+            }
+        }
+
         // Search podcasts
         async function searchPodcasts() {
             console.log('🔍 Search function called');
@@ -7867,12 +8415,48 @@
                     ${episode.link ? `
                         <button class="episode-btn secondary" onclick="window.open('${episode.link}', '_blank')">リンク</button>
                     ` : ''}
-                    <button class="episode-btn podcast-library-add login-required" data-episode-id="${episode.id}" onclick="addToPodcastLibrarySimple(this)">ライブラリ追加</button>
-                    <button class="episode-btn podcast-playlist-add login-required" data-episode-id="${episode.id}" onclick="showAddToPodcastPlaylistModal('${episode.id}', '${episode.title.replace(/'/g, "\\'")}', '${episode.podcast_name.replace(/'/g, "\\'")}', '${episode.audio_url || ''}', '${(episode.description || '').replace(/'/g, "\\'").replace(/"/g, '&quot;').substring(0, 100)}')">プレイリスト追加</button>
+                    <button class="episode-btn podcast-playlist-add login-required" 
+                            data-episode-id="${episode.id}" 
+                            data-episode-title="${episode.title.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"
+                            data-podcast-name="${episode.podcast_name.replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"
+                            data-audio-url="${episode.audio_url || ''}"
+                            data-description="${(episode.description || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/\n|\r\n?/g, ' ').substring(0, 100)}"
+                            onclick="showAddToPodcastPlaylistModalSafe(this)">プレイリスト追加</button>
                 </div>
             `;
             
             return card;
+        }
+
+        // 🔧 SAFE: プレイリスト追加ダイアログを安全に開く関数
+        function showAddToPodcastPlaylistModalSafe(buttonElement) {
+            try {
+                // データ属性から安全にパラメータを取得
+                const episodeId = buttonElement.getAttribute('data-episode-id') || '';
+                const title = buttonElement.getAttribute('data-episode-title') || '';
+                const podcastName = buttonElement.getAttribute('data-podcast-name') || '';
+                const audioUrl = buttonElement.getAttribute('data-audio-url') || '';
+                const description = buttonElement.getAttribute('data-description') || '';
+                
+                console.log('🔧 Safe playlist modal call:', {
+                    episodeId,
+                    title,
+                    podcastName,
+                    audioUrl: audioUrl ? 'present' : 'none',
+                    description: description ? description.substring(0, 50) + '...' : 'none'
+                });
+                
+                // HTMLエンティティをデコード
+                const decodedTitle = title.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+                const decodedPodcastName = podcastName.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+                const decodedDescription = description.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+                
+                // 既存の関数を呼び出し
+                showAddToPodcastPlaylistModal(episodeId, decodedTitle, decodedPodcastName, audioUrl, decodedDescription);
+            } catch (error) {
+                console.error('❌ Error in showAddToPodcastPlaylistModalSafe:', error);
+                alert('プレイリスト追加ダイアログの表示中にエラーが発生しました。');
+            }
         }
 
         // Show no results message
@@ -7974,7 +8558,7 @@
                 return;
             }
             
-            const confirmed = confirm('既存のデモトラック（demo-、user-track-で始まるトラック）をすべてクリアしますか？\n\n注意：この操作は元に戻せません。');
+            const confirmed = await showCustomConfirmDialog('既存のデモトラック（demo-、user-track-で始まるトラック）をすべてクリアしますか？\n\n注意：この操作は元に戻せません。');
             if (!confirmed) {
                 return;
             }
@@ -8301,6 +8885,18 @@
                 showMessage(`"${selectedPodcastPlaylistForAdding.name}" にエピソードを追加しました`, 'success');
                 closeAddToPodcastPlaylistModal();
                 
+                // 🎙️ AUTO-RELOAD: If current view is the same playlist that was added to, reload it automatically
+                if (window.selectedPlaylistId && window.selectedPlaylistId === `podcast_${selectedPodcastPlaylistForAdding.id}`) {
+                    console.log('🔄 Auto-reloading current podcast playlist to show new episode');
+                    try {
+                        await window.loadPodcastPlaylistContent(window.selectedPlaylistId, true); // Force reload
+                        console.log('✅ Playlist auto-reload completed successfully');
+                    } catch (reloadError) {
+                        console.warn('⚠️ Failed to auto-reload playlist:', reloadError);
+                        showMessage('エピソードは追加されましたが、表示更新に失敗しました。ページをリロードしてください。', 'warning');
+                    }
+                }
+                
             } catch (error) {
                 console.error('Error adding to podcast playlist:', error);
                 if (error.message.includes('already exists')) {
@@ -8403,6 +8999,7 @@
         window.selectPodcastPlaylistEmoji = selectPodcastPlaylistEmoji;
         window.submitCreatePodcastPlaylist = submitCreatePodcastPlaylist;
         window.showAddToPodcastPlaylistModal = showAddToPodcastPlaylistModal;
+        window.showAddToPodcastPlaylistModalSafe = showAddToPodcastPlaylistModalSafe;
         window.closeAddToPodcastPlaylistModal = closeAddToPodcastPlaylistModal;
         window.selectPodcastPlaylistForAdding = selectPodcastPlaylistForAdding;
         window.confirmAddToPodcastPlaylist = confirmAddToPodcastPlaylist;
@@ -9121,7 +9718,7 @@
                 <div id="confirmSkipContainer" class="confirm-skip-container" style="display: none;">
                     <label class="skip-checkbox-label">
                         <input type="checkbox" id="confirmSkipCheckbox">
-                        <span></span>
+                        <span id="confirmSkipText">今後このダイアログを表示しない</span>
                     </label>
                 </div>
             </div>
@@ -9787,7 +10384,8 @@
                 return;
             }
             
-            if (!confirm(`"${title}" をポッドキャストライブラリから削除しますか？`)) {
+            const confirmed = await showCustomConfirmDialog(`"${title}" をポッドキャストライブラリから削除しますか？`);
+            if (!confirmed) {
                 return;
             }
             
@@ -9819,6 +10417,75 @@
         // 日本語テキスト初期化の実行と新システム初期化
         document.addEventListener('DOMContentLoaded', () => {
             console.log('DOM: Ready, starting new initialization system');
+            
+            // 🚨 CRITICAL: ログイン前の初期状態を正しく設定 (PRE-LOGIN STATE SETUP)
+            console.log('🔒 Setting up pre-login initial state...');
+            
+            // POST-LOGIN SECTIONSを強制的に隠す
+            const postLoginSections = [
+                '#uploadSection',
+                '#librarySection', 
+                '#playlistSection',
+                '#podcastSearchSection'
+            ];
+            
+            postLoginSections.forEach(selector => {
+                const element = document.querySelector(selector);
+                if (element) {
+                    element.style.setProperty('display', 'none', 'important');
+                    element.classList.add('hidden');
+                    console.log(`🔒 Hidden post-login section: ${selector}`);
+                }
+            });
+            
+            // USER INFO & ACCOUNT SECTIONSを強制的に隠す
+            const userInfoSections = [
+                '.user-info',
+                '.header-account',
+                '.header-user-info',
+                '.header-logout-btn'
+            ];
+            
+            userInfoSections.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(element => {
+                    element.style.setProperty('display', 'none', 'important');
+                    element.classList.add('hidden');
+                    console.log(`🔒 Hidden user info section: ${selector}`);
+                });
+            });
+            
+            // AUTH FORMを強制的に表示
+            const authSection = document.querySelector('#authSection');
+            const authForm = document.querySelector('.auth-form');
+            if (authSection) {
+                authSection.style.setProperty('display', 'block', 'important');
+                authSection.classList.remove('hidden');
+                console.log('✅ Showed auth section');
+            }
+            if (authForm) {
+                authForm.style.setProperty('display', 'flex', 'important');
+                authForm.classList.remove('hidden');
+                console.log('✅ Showed auth form');
+            }
+            
+            // Mobile menusも隠す（ログイン前は不要）
+            const mobileMenus = [
+                '#mobileMenuToggle',
+                '.mobile-sidebar-button',
+                '.mobile-menu-toggle'
+            ];
+            
+            mobileMenus.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(element => {
+                    element.style.setProperty('display', 'none', 'important');
+                    element.style.setProperty('visibility', 'hidden', 'important');
+                    console.log(`🔒 Hidden mobile menu: ${selector}`);
+                });
+            });
+            
+            console.log('✅ Pre-login state setup completed');
             
             // ボタンテキストの初期化を少し遅らせて確実に実行
             setTimeout(() => {
